@@ -34,12 +34,6 @@ class Form(System.Windows.Forms.Form):
     def __getattribute__(self, item):
         return csharp_value_to_python(super(Form, self).__getattribute__(item))
 
-    def Dispose(self, disposing):
-        if disposing and self.components is not None:
-            self.components.Dispose()
-
-        super(Form, self).Dispose(disposing)
-
     def initialize_components(self):
         self.initialize_component()
 
