@@ -164,3 +164,8 @@ class MyForm(netforms.Form):
 First we define an event handler `button1_click`. This handler needs 2 arguments, `sender` and `e`. Note that due to 
     limitations, currently `sender` will be a raw pythonnet `Control`, and will not work with the nice Python names
     yet.
+    
+Next notice the line where we add `button1_click` to the EventHandler `click`. This is exactly like C# except without
+    the converting to another type.
+
+That is it! `button1_click` will be called when the button is clicked!
