@@ -1,5 +1,4 @@
 from collections import defaultdict
-from functools import wraps
 
 from clr import System, GetClrType
 
@@ -24,21 +23,6 @@ def __getattr__(name):
         if not callable(method):
             raise AttributeError(name)
 
-        @wraps(method)
-        def wrapper(*args):
-            for arg_types in __ARGUMENT_TYPES[name]:
-                if len(args) != len(arg_types):
-                    continue
-
-                try:
-                    args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
-                                  for arg_i, arg in enumerate(args))
-                    return converters.ValueConverter.to_python(method(*args_))
-                except:
-                    pass
-            else:
-                raise ValueError("Could not convert all arguments {} for {}".format(args, method))
-
-        __WRAPPED_METHODS[name] = wrapper
+        __WRAPPED_METHODS[name] = utils.wrap_csharp_method(method, __ARGUMENT_TYPES[name])
 
     return __WRAPPED_METHODS[name]

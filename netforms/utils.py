@@ -38,6 +38,35 @@ def get_class_from_name(klass_name, base_module=clr):
     return attr
 
 
+def wrap_csharp_method(method, arg_type_sets):
+    """
+    Wraps a C# method, ensuring the arguments are C# arguments the return type is a Python type.
+
+    Args:
+        method (callable): The C# method to wrap.
+        arg_type_sets (list): A list of tuples, containing possible argument types. We will try to convert the
+            arguments given to the method to one of the given sets of types. If successful, the C# method is called.
+            If C# accepts the given types, the method is returned.
+    """
+    @wraps(method)
+    def wrapper(*args):
+        for arg_types in arg_type_sets:
+            if len(args) != len(arg_types):
+                continue
+
+            try:
+                args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
+                              for arg_i, arg in enumerate(args))
+                return converters.ValueConverter.to_python(method(*args_))
+            except TypeError:
+                # pythonnet raises a TypeError if the given
+                pass
+        else:
+            raise ValueError("Could not convert all arguments {} for {}".format(args, method))
+
+    return wrapper
+
+
 class MetaWrapper(type):
     def __getattr__(cls, item):
         csharp_name = python_name_to_csharp_name(item)
@@ -99,22 +128,7 @@ def get_wrapper_class(klass):
                     method = getattr(self.instance, csharp_name)
                     arg_type_set = self.methods[csharp_name]
 
-                    @wraps(method)
-                    def wrapper(*args):
-                        for arg_types in arg_type_set:
-                            if len(args) != len(arg_types):
-                                continue
-
-                            try:
-                                args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
-                                              for arg_i, arg in enumerate(args))
-                                return converters.ValueConverter.to_python(method(*args_))
-                            except:
-                                pass
-                        else:
-                            raise ValueError("Could not convert all arguments {} for {}".format(args, method))
-
-                    return wrapper
+                    return wrap_csharp_method(method, arg_type_set)
                 elif csharp_name in self.attributes:
                     return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
 
