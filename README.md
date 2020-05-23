@@ -56,14 +56,12 @@ class MyForm(netforms.Form):
         # Form1
         # 
         self.AutoScaleDimensions = netforms.utils.Size(6, 13)
-        self.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font  # TODO: NO!!!
+        self.AutoScaleMode = netforms.forms.AutoScaleMode.Font
         self.ClientSize = netforms.utils.Size(800, 450)
         self.Controls.Add(self.button1)
         self.Name = "Form1"
         self.Text = "Form1"
         self.ResumeLayout(False)
-
-netforms.run(MyForm())
 ```
 
 The default `__init__` for `Form` will call `InitializeComponent`. There are a few tricks we can use though,
@@ -90,7 +88,7 @@ class MyForm(netforms.Form):
         # Form1
         # 
         self.auto_scale_dimensions = (6, 13)
-        self.auto_scale_mode = System.Windows.Forms.AutoScaleMode.Font  # TODO: NO!!!
+        self.auto_scale_mode = netforms.forms.AutoScaleMode.Font
         self.client_size = (800, 450)
         self.controls.add(self.button1)
         self.name = "Form1"
@@ -104,7 +102,7 @@ Furthermore since this is such a simple form, and does not require any event han
 my_form = netforms.Form(
     client_size=(800, 450),
     auto_scale_dimensions=(6, 13),
-    auto_scale_mode=System.Windows.Forms.AutoScaleMode.Font,  # TODO: NO!!!
+    auto_scale_mode=netforms.forms.AutoScaleMode.Font,
     name="Form1",
     text="Form1",
     controls=[netforms.controls.Button(
@@ -125,6 +123,9 @@ Everything from `System.Windows.Forms.Application` is available by both original
 ```python
 netforms.run(my_form)
 ```
+
+The base `netforms` module will shadow methods from `System.Windows.Forms.Applicatoin`, meaning both `Run` and `run`
+    are available.
 
 ### Events
 Events work similarly to C# in that you must add a callable to the event handler. For example, lets take the simple

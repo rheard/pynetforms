@@ -1,288 +1,202 @@
 import logging
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from functools import wraps
+
+import clr
 
 from clr import System, GetClrType
 
-ControlCollection = System.Windows.Forms.Control.ControlCollection  # For later importing...
-
 logger = logging.getLogger(__name__)
+__WRAPPER_CLASSES = dict()
 
 
-def translate_csharp(klass):
+def python_name_to_csharp_name(name):
+    if is_python_name(name):
+        return name.title().replace('_', '')
+
+    return name
+
+
+def is_python_name(name):
+    return '_' in name or name.islower()
+
+
+def get_class_from_name(klass_name, base_module=clr):
+    """Get the C# class from the string of the name."""
+    splitted = klass_name.split('.', 1)
+    attr = getattr(base_module, splitted[0], None)
+    if attr and len(splitted) > 1:
+        return get_class_from_name(splitted[1], attr)
+    elif not attr:
+        # Now we need to handle nested types.
+        splitted = klass_name.split('+', 1)
+        attr = getattr(base_module, splitted[0])
+        if len(splitted) > 1:
+            return get_class_from_name(splitted[1], attr)
+
+    return attr
+
+
+class MetaWrapper(type):
+    def __getattr__(cls, item):
+        csharp_name = python_name_to_csharp_name(item)
+        return getattr(cls.klass, csharp_name)
+
+
+def get_wrapper_class(klass):
     """
-    This decorates a class with methods to convert from Python property names ("is_enabled") to C# names ("IsEnabled").
+    Get the wrapper class for the given C# class (or instance).
 
-    This gives a C# class dual names for all properties. For instance, you can do instance.text or instance.Text.
+    Args:
+        klass (System.Type, System.Object): If an instance (System.Object), this just gets rerun with `type(klass)`.
+            Should NOT be a System.RuntimeType.
     """
-    class Subclass(klass):
-        def __getattr__(self, name):
-            if name.istitle():
-                orig_getattr = getattr(super(Subclass, self), '__getattr__', None)
-                if orig_getattr is None:
-                    raise AttributeError(name)
-                else:
-                    return orig_getattr(name)
+    global __WRAPPER_CLASSES
+    klass_ = klass
 
-            return getattr(self, python_name_to_csharp_name(name))
+    if isinstance(klass, clr.System.Type):
+        return get_wrapper_class(get_class_from_name(klass.ToString()))
 
-        def __setattr__(self, name, value):
-            if name.istitle():
-                return super(Subclass, self).__setattr__(name, value)
+    if isinstance(klass, clr.System.Object):
+        # This is an instance. Get the type and pass it back in.
+        return get_wrapper_class(klass.GetType())
 
-            return setattr(self, python_name_to_csharp_name(name), value)
+    if klass not in __WRAPPER_CLASSES:
+        class WrapperClass(metaclass=MetaWrapper):
+            """
+            A wrapper class.
 
-    Subclass.__name__ = Subclass.__qualname__ = klass.__name__
-    return Subclass
+            Attributes:
+                klass (System.Type): The original C# Type.
+                clrtype (System.RuntimeType): The CLR type.
+                methods (set): method name -> list of tuples, consisting of possible argument types.
+                attributes (dict): attribute name -> attribute class
+                events (set): A set of event names in this class.
+                nested (set): A set of nested classes in this class.
+            """
+            klass = klass_
+            clrtype = clr.GetClrType(klass_)
+            methods = defaultdict(list)
+            attributes = dict()
+            events = set()
+            nested = set()
+
+            def __init__(self, *args, instance=None, **kwargs):
+                self.instance = instance if instance is not None else self.klass(*args)
+
+                for prop_name, val in kwargs.items():
+                    setattr(self, prop_name, val)
+
+            def __getattr__(self, name):
+                csharp_name = python_name_to_csharp_name(name)
+
+                if csharp_name in self.events:
+                    return getattr(self.instance, csharp_name)
+                elif csharp_name in self.nested:
+                    return WrapperClass(getattr(self.instance, csharp_name))
+                elif csharp_name in self.methods:
+                    method = getattr(self.instance, csharp_name)
+                    arg_type_set = self.methods[csharp_name]
+
+                    @wraps(method)
+                    def wrapper(*args):
+                        for arg_types in arg_type_set:
+                            if len(args) != len(arg_types):
+                                continue
+
+                            try:
+                                args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
+                                              for arg_i, arg in enumerate(args))
+                                return converters.ValueConverter.to_python(method(*args_))
+                            except:
+                                pass
+                        else:
+                            raise ValueError("Could not convert all arguments {} for {}".format(args, method))
+
+                    return wrapper
+                elif csharp_name in self.attributes:
+                    return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
+
+                raise AttributeError(name)
+
+            def __setattr__(self, name, value):
+                if not name.startswith('_'):
+                    csharp_name = python_name_to_csharp_name(name)
+
+                    if csharp_name in self.events:
+                        raise ValueError('property is read-only')
+                    elif csharp_name in self.methods:
+                        raise ValueError('property is read-only')
+                    elif csharp_name in self.nested:
+                        raise ValueError('property is read-only')
+                    elif csharp_name in self.attributes:
+                        if self.attributes[csharp_name] is None:
+                            raise ValueError('property is read-only')
+
+                        return setattr(self.instance, csharp_name,
+                                       converters.ValueConverter(self.attributes[csharp_name]).to_csharp(value))
+
+                return super(WrapperClass, self).__setattr__(name, value)
+
+            def __instancecheck__(self, instance):
+                return isinstance(instance, klass_)
+
+            def __getitem__(self, item):
+                return self.instance[item]
+
+            def __setitem__(self, item, value):
+                self.instance = value
+
+            def __iter__(self):
+                return iter(self.instance)
+
+        for field in WrapperClass.clrtype.GetMembers():
+            field_name = field.Name
+            if any(field_name.startswith(x) for x in ['get_', 'set_', 'add_', 'remove_', 'op_']):
+                continue
+
+            if isinstance(field, System.Reflection.MethodInfo):
+                WrapperClass.methods[field_name].append(tuple(
+                    param_info.ParameterType for param_info in field.GetParameters()
+                ))
+            elif isinstance(field, System.Reflection.EventInfo):
+                WrapperClass.events.add(field_name)
+            elif isinstance(field, System.Reflection.PropertyInfo):
+                WrapperClass.attributes[field_name] = field.PropertyType
+            elif isinstance(field, System.Reflection.FieldInfo):
+                WrapperClass.attributes[field_name] = field.FieldType
+            elif isinstance(field, System.Type):
+                WrapperClass.nested.add(field_name)
+            elif not isinstance(field, System.Reflection.ConstructorInfo):
+                logger.warning('Unknown member type info %r for field %s on class %s',
+                               field, field_name, WrapperClass.klass)
+
+        WrapperClass.__name__ = WrapperClass.__qualname__ = klass.__name__
+        WrapperClass.__module__ = __name__
+
+        __WRAPPER_CLASSES[klass] = WrapperClass
+
+    return __WRAPPER_CLASSES[klass]
 
 
 def csharp_namedtuple(*args, **kwargs):
     """Allow for CSharp names and python names."""
-    return translate_csharp(namedtuple(*args, **kwargs))
+    klass = namedtuple(*args, **kwargs)
+
+    class Subclass(klass):
+        def __getattr__(self, name):
+            return super(Subclass, self).__getattr__(python_name_to_csharp_name(name))
+
+        def __setattr__(self, name, value):
+            return super(Subclass, self).__setattr__(python_name_to_csharp_name(name), value)
+
+    Subclass.__name__ = Subclass.__qualname__ = klass.__name__
+    return Subclass
 
 
 Point = csharp_namedtuple('Point', 'X Y')
 Size = csharp_namedtuple('Size', 'Width Height')
 Rectangle = csharp_namedtuple('Rectangle', 'Location Size')
 
-
-class CSharpPythonConverter(object):
-    """
-    Handle conversions between C# values and Python values for a particular C# class.
-
-    Attributes:
-        klass: The C# class we're converting from. Not a RuntimeType, but an actual class.
-    """
-    def __new__(cls, klass=None):
-        """Find the converter for klass, see get_converter."""
-        if cls is CSharpPythonConverter:
-            converter = cls.get_converter(klass)
-            if converter:
-                return converter()
-
-        if klass and cls is not CSharpPythonConverter:
-            logger.warning('Ignoring argument to subclass of CSharpPythonConverter')
-
-        return super(CSharpPythonConverter, cls).__new__(cls)
-
-    @classmethod
-    def get_converter(cls, klass):
-        """
-        Find the converter for klass.
-
-        Args:
-            klass (System.RuntimeType): The RuntimeType for the class to search for.
-                If you have an instance, you can simply do `instance.GetType()`.
-
-                If you have a class, you can simply do `clr.GetClrType(class)`.
-
-                If you have a RuntimeType and want the RuntimeType of a property,
-                    `clrtype.GetProperty(property_name).PropertyType`
-        """
-        for converter in cls.__subclasses__():
-            if hasattr(converter, 'klass') and klass.Equals(converter.klass):
-                return converter
-
-            # Also recursively check this subclass subclasses.
-            subclass_converter = converter.get_converter(klass)
-            if subclass_converter:
-                return subclass_converter
-
-        return None
-
-    @classmethod
-    def get_converter_by_value(cls, value):
-        """
-        Find the converter for a value.
-
-        Args:
-            value (object): The object to find the converter for.
-        """
-        for converter in cls.__subclasses__():
-            if hasattr(converter, 'klass') and isinstance(value, converter.klass):
-                return converter
-
-            # Also recursively check this subclass subclasses.
-            subclass_converter = converter.get_converter_by_value(value)
-            if subclass_converter:
-                return subclass_converter
-
-        return None
-
-    @classmethod
-    def to_python(cls, value):
-        """
-        Convert the C# value to Python.
-
-        The basic operation (str, int, float, etc) is to just return the value...
-        """
-        # Since we're converting from C#, we have the type readily available.
-        converter = cls.get_converter_by_value(value)
-        if converter:
-            return converter.to_python(value)
-
-        return value
-
-    @classmethod
-    def to_csharp(cls, value):
-        """
-        Convert the Python value to C#.
-
-        The basic operation (str, int, float, etc) is to just return the value...
-        """
-        return value
-
-
-class ConvertNamedTuple(CSharpPythonConverter):
-    """
-    Handles conversion for classes that can be handled with a basic named tuple.
-
-    Going from Python to C#, the default behavior is to call klass(*value).
-
-    Going from C# to Python, the default behavior is to create a set of arguments, one for
-        each field value for field in fields. That set of arguments is then provided to the python_klass.
-
-    Attributes:
-        python_klass: The Python class to use. By default, fields will be supplied as arguments.
-
-    TODO: System.Reflection _might_ be able to be used to get the attributes (yes it can) and their ordering to the
-        class creator (maybe?), preventing the need to define the above named tuples
-        (since they could be spun up on the fly)
-    """
-    @classmethod
-    def to_python(cls, value):
-        """Convert the input C# value to Python."""
-        args = (getattr(value, field) for field in cls.python_klass._fields)
-        args = (csharp_value_to_python(value) if isinstance(value, System.Object) else value for value in args)
-        return cls.python_klass(*args)
-
-    @classmethod
-    def to_csharp(cls, value):
-        """Convert the input Python value to C#."""
-        clr_type = GetClrType(cls.klass)
-
-        # Convert the subitems too.
-        value = tuple(python_value_to_csharp(get_field_type(clr_type, field), value[field_i])
-                      for field_i, field in enumerate(cls.python_klass._fields))
-
-        return cls.klass(*value)
-
-
-class ConvertPoint(ConvertNamedTuple):
-    klass = System.Drawing.Point
-    python_klass = Point
-
-
-class ConvertPointF(ConvertNamedTuple):
-    klass = System.Drawing.PointF
-    python_klass = Point
-
-
-class ConvertSize(ConvertNamedTuple):
-    klass = System.Drawing.Size
-    python_klass = Size
-
-
-class ConvertSizeF(ConvertNamedTuple):
-    klass = System.Drawing.SizeF
-    python_klass = Size
-
-
-class ConvertRectangle(ConvertNamedTuple):
-    klass = System.Drawing.Rectangle
-    python_klass = Rectangle
-
-
-class ConvertInt32(CSharpPythonConverter):
-    klass = System.Int32
-
-    @classmethod
-    def to_csharp(cls, value):
-        return int(value)
-
-
-class ConvertDouble(CSharpPythonConverter):
-    klass = System.Double
-
-    @classmethod
-    def to_csharp(cls, value):
-        return float(value)
-
-
-class ConvertSingle(ConvertDouble):
-    klass = System.Single
-
-
-class ControlCollectionSet(object):
-    def __init__(self, controls):
-        self.controls = controls
-
-    def __getattr__(self, name):
-        if name.istitle():
-            return getattr(self.controls, name)
-
-        return getattr(self, python_name_to_csharp_name(name))
-
-    def __setattr__(self, name, value):
-        if name.istitle():
-            setattr(self.controls, name, value)
-
-        elif name not in ['controls']:
-            setattr(self.controls, python_name_to_csharp_name(name), value)
-
-        else:
-            super(ControlCollectionSet, self).__setattr__(name, value)
-
-    def __getitem__(self, item):
-        return self.controls[item]
-
-    def __iter__(self):
-        return iter(self.controls)
-
-    def __instancecheck__(self, instance):
-        return isinstance(instance, ControlCollection)
-
-
-class ConvertControlCollection(CSharpPythonConverter):
-    klass = ControlCollection
-
-    @classmethod
-    def to_csharp(cls, value):
-        raise TypeError("property is read-only")
-
-    @classmethod
-    def to_python(cls, value):
-        return ControlCollectionSet(value)
-
-
-def python_name_to_csharp_name(name):
-    return name.title().replace('_', '')
-
-
-def python_value_to_csharp(csharp_type, value):
-    if csharp_type is not None:
-        return CSharpPythonConverter(csharp_type).to_csharp(value)
-
-    return value
-
-
-def csharp_value_to_python(value):
-    return CSharpPythonConverter.to_python(value)
-
-
-def get_field_type(klass, field_name):
-    """
-    Returns the field type from the class.
-
-    Args:
-        klass (System.RuntimeType): The class to get the field type from.
-        field_name (str): The field to get the type for.
-
-    Returns:
-        System.RuntimeType
-    """
-    prop_info = klass.GetProperty(field_name)
-    return prop_info.PropertyType if prop_info else None
-
-
-from . import controls
+from . import converters
