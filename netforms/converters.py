@@ -69,7 +69,7 @@ class ValueConverter(object):
 
         return value
 
-    def to_csharp(self, value):
+    def to_csharp(self, value, force=False):
         """
         Convert the Python value to C#.
 
@@ -101,7 +101,7 @@ class NamedTupleConverter(ValueConverter):
         args = (ValueConverter.to_python(value) if isinstance(value, System.Object) else value for value in args)
         return cls.python_klass(*args)
 
-    def to_csharp(self, value):
+    def to_csharp(self, value, force=False):
         """Convert the input Python value to C#."""
         if isinstance(value, self.klass):
             return value
@@ -142,13 +142,13 @@ class BasicTypeConverter(ValueConverter):
         python_types (tuple, optional): A tuple of python types that this **supports**. The above python_type is
             automatically considered here.
     """
-    def to_csharp(self, value):
+    def to_csharp(self, value, force=False):
         if isinstance(value, self.klass):
             return value
 
         python_types = getattr(self, 'python_types', tuple()) + (self.python_type, )
 
-        if not isinstance(value, python_types):
+        if not force and not isinstance(value, python_types):
             raise ValueError(value)
 
         return self.klass(self.python_type(value))
@@ -179,7 +179,7 @@ class BoolConverter(BasicTypeConverter):
 class WrappedConverter(ValueConverter):
     klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control}
 
-    def to_csharp(self, value):
+    def to_csharp(self, value, force=False):
         return value.instance
 
     @classmethod

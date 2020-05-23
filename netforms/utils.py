@@ -55,6 +55,7 @@ def wrap_csharp_method(method, arg_type_sets):
                 continue
 
             try:
+                # Since type matching is important, do not force here.
                 args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
                               for arg_i, arg in enumerate(args))
                 return converters.ValueConverter.to_python(method(*args_))
@@ -149,7 +150,7 @@ def get_wrapper_class(klass):
                             raise ValueError('property is read-only')
 
                         return setattr(self.instance, csharp_name,
-                                       converters.ValueConverter(self.attributes[csharp_name]).to_csharp(value))
+                                       converters.ValueConverter(self.attributes[csharp_name]).to_csharp(value, True))
 
                 return super(WrapperClass, self).__setattr__(name, value)
 
