@@ -133,43 +133,47 @@ class RectangleConverter(NamedTupleConverter):
     python_klass = Rectangle
 
 
-class StrConverter(NamedTupleConverter):
+class BasicTypeConverter(ValueConverter):
+    """
+    Converts a basic Python type to a basic C# type.
+
+    Attributes:
+        python_type (type): The python type to convert to before calling the C# method.
+        python_types (tuple, optional): A tuple of python types that this **supports**. The above python_type is
+            automatically considered here.
+    """
+    def to_csharp(self, value):
+        if isinstance(value, self.klass):
+            return value
+
+        python_types = getattr(self, 'python_types', tuple()) + (self.python_type, )
+
+        if not isinstance(value, python_types):
+            raise ValueError(value)
+
+        return self.klass(self.python_type(value))
+
+
+class StrConverter(BasicTypeConverter):
     klasses = {System.String}
-
-    def to_csharp(self, value):
-        if isinstance(value, self.klass):
-            return value
-
-        if not isinstance(value, str):
-            raise ValueError(value)
-
-        return self.klass(value)
+    python_type = str
 
 
-class IntConverter(NamedTupleConverter):
+class IntConverter(BasicTypeConverter):
     klasses = {System.Int32}
-
-    def to_csharp(self, value):
-        if isinstance(value, self.klass):
-            return value
-
-        if not isinstance(value, (int, float)):
-            raise ValueError(value)
-
-        return self.klass(int(value))
+    python_type = int
+    python_types = (float, )
 
 
-class FloatConverter(NamedTupleConverter):
+class FloatConverter(BasicTypeConverter):
     klasses = {System.Double, System.Single}
+    python_type = float
+    python_types = (int, )
 
-    def to_csharp(self, value):
-        if isinstance(value, self.klass):
-            return value
 
-        if not isinstance(value, (int, float)):
-            raise ValueError(value)
-
-        return self.klass(float(value))
+class BoolConverter(BasicTypeConverter):
+    klasses = {System.Boolean}
+    python_type = bool
 
 
 class WrappedConverter(ValueConverter):
