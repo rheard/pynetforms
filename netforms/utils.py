@@ -68,6 +68,20 @@ def wrap_csharp_method(method, arg_type_sets):
     return wrapper
 
 
+def wrap_python_method(method, return_type=None):
+    """
+    Wraps a Python method, ensuring the arguments are Python arguments and the output is C#.
+    """
+    @wraps(method)
+    def wrapper(*args):
+        args_ = tuple(converters.ValueConverter.to_python(arg) for arg in args)
+        ret = method(*args_)
+        if return_type is not None:
+            return converters.ValueConverter(return_type).to_csharp(ret, True)
+
+    return wrapper
+
+
 class MetaWrapper(type):
     def __getattr__(cls, item):
         csharp_name = python_name_to_csharp_name(item)
@@ -121,17 +135,17 @@ def get_wrapper_class(klass):
             def __getattr__(self, name):
                 csharp_name = python_name_to_csharp_name(name)
 
-                if csharp_name in self.events:
-                    return getattr(self.instance, csharp_name)
-                elif csharp_name in self.nested:
-                    return WrapperClass(getattr(self.instance, csharp_name))
+                if csharp_name in self.attributes:
+                    return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
                 elif csharp_name in self.methods:
                     method = getattr(self.instance, csharp_name)
                     arg_type_set = self.methods[csharp_name]
 
                     return wrap_csharp_method(method, arg_type_set)
-                elif csharp_name in self.attributes:
-                    return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
+                elif csharp_name in self.events:
+                    return get_wrapper_class(System.EventHandler)(instance=getattr(self.instance, csharp_name))
+                elif csharp_name in self.nested:
+                    return WrapperClass(getattr(self.instance, csharp_name))
 
                 raise AttributeError(name)
 
@@ -140,6 +154,7 @@ def get_wrapper_class(klass):
                     csharp_name = python_name_to_csharp_name(name)
 
                     if csharp_name in self.events:
+                        value = converters.ValueConverter(System.EventHandler).to_csharp(value)
                         setattr(self.instance, csharp_name, value)
                     elif csharp_name in self.methods:
                         raise ValueError('property is read-only')
@@ -193,6 +208,17 @@ def get_wrapper_class(klass):
         __WRAPPER_CLASSES[klass] = WrapperClass
 
     return __WRAPPER_CLASSES[klass]
+
+
+class EventHandler(get_wrapper_class(System.EventHandler)):
+    def __iadd__(self, other):
+        if callable(other):
+            other = wrap_python_method(other)
+
+        return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
+
+
+__WRAPPER_CLASSES[System.EventHandler] = EventHandler
 
 
 def csharp_namedtuple(*args, **kwargs):

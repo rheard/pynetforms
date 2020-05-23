@@ -177,10 +177,13 @@ class BoolConverter(BasicTypeConverter):
 
 
 class WrappedConverter(ValueConverter):
-    klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control}
+    klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control, System.EventHandler}
 
     def to_csharp(self, value, force=False):
         return value.instance
+
+    def to_python_event(self, value):
+        return get_wrapper_class(self.klass)(instance=value)
 
     @classmethod
     def to_python(cls, value):
