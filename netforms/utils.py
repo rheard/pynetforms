@@ -125,7 +125,7 @@ def get_wrapper_class(klass):
                     csharp_name = python_name_to_csharp_name(name)
 
                     if csharp_name in self.events:
-                        raise ValueError('property is read-only')
+                        setattr(self.instance, csharp_name, value)
                     elif csharp_name in self.methods:
                         raise ValueError('property is read-only')
                     elif csharp_name in self.nested:
