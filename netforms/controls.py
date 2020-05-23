@@ -16,6 +16,8 @@ def __getattr__(name):
         raise AttributeError(name)
 
     class NewClass(orig_class):
+        __empty_arg = object()
+
         def __init__(self, *args, **kwargs):
             super(NewClass, self).__init__(*args)
             for prop_name, val in kwargs.items():
@@ -28,20 +30,24 @@ def __getattr__(name):
             # TODO: Instead of getting the field type here, every time,
             #   considering iterating over all the properties in __init__
             #   and creating a dict for the fields with special types.
-            if name.istitle():
-                self_type = self.GetType()
-                return super(NewClass, self).__setattr__(
-                    name,
-                    python_value_to_csharp(get_field_type(self_type, name), value)
-                )
+            csharp_name = python_name_to_csharp_name(name)
+            self_type = self.GetType()
+            field_type = get_field_type(self_type, csharp_name)
+            if field_type is not None:
+                return super(NewClass, self).__setattr__(csharp_name, python_value_to_csharp(field_type, value))
 
-            return setattr(self, python_name_to_csharp_name(name), value)
+            return super(NewClass, self).__setattr__(name, value)
 
         def __getattr__(self, name):
-            if name.istitle():
-                raise AttributeError(name)
+            if not name.startswith('_') and not name.istitle():
+                csharp_val = getattr(self, python_name_to_csharp_name(name), self.__empty_arg)
+                if csharp_val is not self.__empty_arg:
+                    return csharp_val
 
-            return getattr(self, python_name_to_csharp_name(name))
+            raise AttributeError(name)
+
+        def __instancecheck__(self, instance):
+            return isinstance(instance, orig_class)
 
     NewClass.__name__ = NewClass.__qualname__ = name
     NewClass.__module__ = __name__

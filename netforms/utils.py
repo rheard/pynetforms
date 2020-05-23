@@ -15,27 +15,25 @@ def translate_csharp(klass):
 
     This gives a C# class dual names for all properties. For instance, you can do instance.text or instance.Text.
     """
-    orig_setattr = getattr(klass, '__setattr__', None)
-    orig_getattr = getattr(klass, '__getattr__', None)
+    class Subclass(klass):
+        def __getattr__(self, name):
+            if name.istitle():
+                orig_getattr = getattr(super(Subclass, self), '__getattr__', None)
+                if orig_getattr is None:
+                    raise AttributeError(name)
+                else:
+                    return orig_getattr(name)
 
-    def __getattr__(self, name):
-        if name.istitle():
-            if orig_getattr is None:
-                raise AttributeError(name)
-            else:
-                return orig_getattr(name)
+            return getattr(self, python_name_to_csharp_name(name))
 
-        return getattr(self, python_name_to_csharp_name(name))
+        def __setattr__(self, name, value):
+            if name.istitle():
+                return super(Subclass, self).__setattr__(name, value)
 
-    def __setattr__(self, name, value):
-        if name.istitle():
-            return orig_setattr(name, value)
+            return setattr(self, python_name_to_csharp_name(name), value)
 
-        return setattr(self, python_name_to_csharp_name(name), value)
-
-    setattr(klass, '__getattr__', __getattr__)
-    setattr(klass, '__setattr__', __setattr__)
-    return klass
+    Subclass.__name__ = Subclass.__qualname__ = klass.__name__
+    return Subclass
 
 
 def csharp_namedtuple(*args, **kwargs):
@@ -145,7 +143,6 @@ class ConvertNamedTuple(CSharpPythonConverter):
         each field value for field in fields. That set of arguments is then provided to the python_klass.
 
     Attributes:
-        fields: The fields to use from the C# class.
         python_klass: The Python class to use. By default, fields will be supplied as arguments.
 
     TODO: System.Reflection _might_ be able to be used to get the attributes (yes it can) and their ordering to the
@@ -186,14 +183,34 @@ class ConvertSize(ConvertNamedTuple):
     python_klass = Size
 
 
+class ConvertSizeF(ConvertNamedTuple):
+    klass = System.Drawing.SizeF
+    python_klass = Size
+
+
 class ConvertRectangle(ConvertNamedTuple):
     klass = System.Drawing.Rectangle
     python_klass = Rectangle
 
 
-class ConvertControl(ConvertNamedTuple):
-    klass = System.Windows.Forms.Control
-    python_klass = Rectangle
+class ConvertInt32(CSharpPythonConverter):
+    klass = System.Int32
+
+    @classmethod
+    def to_csharp(cls, value):
+        return int(value)
+
+
+class ConvertDouble(CSharpPythonConverter):
+    klass = System.Double
+
+    @classmethod
+    def to_csharp(cls, value):
+        return float(value)
+
+
+class ConvertSingle(ConvertDouble):
+    klass = System.Single
 
 
 class ControlCollectionSet(object):
@@ -223,7 +240,7 @@ class ControlCollectionSet(object):
         return iter(self.controls)
 
     def __instancecheck__(self, instance):
-        return instance is ControlCollection
+        return isinstance(instance, ControlCollection)
 
 
 class ConvertControlCollection(CSharpPythonConverter):

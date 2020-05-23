@@ -4,9 +4,9 @@ __version__ = "0.0.1"
 from setuptools import setup
 
 
-setup(name='pywinforms',
+setup(name='pynetforms',
       version=__version__,
-      description="A light Pythonic wrapper around Window's Forms.",
+      description="A light Pythonic wrapper around .NET's Forms libraries.",
       url='TBD',
-      packages=['winforms'],
+      packages=['netforms'],
       install_requires=['pythonnet'])

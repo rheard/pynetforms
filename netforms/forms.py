@@ -1,9 +1,11 @@
-from clr import System
+from clr import System, GetClrType
 
-from .utils import python_name_to_csharp_name, csharp_value_to_python, python_value_to_csharp
+from .utils import python_name_to_csharp_name, csharp_value_to_python, python_value_to_csharp, get_field_type
 
 
 class Form(System.Windows.Forms.Form):
+    __empty_arg = object()
+
     def __init__(self, *args, controls=None, **kwargs):
         super(Form, self).__init__(*args)
 
@@ -19,17 +21,21 @@ class Form(System.Windows.Forms.Form):
         self.initialize_components()
 
     def __setattr__(self, name, value):
-        if name.istitle():
-            self_type = self.GetType()
-            return super(Form, self).__setattr__(name, python_value_to_csharp(self_type, value))
-
-        return setattr(self, python_name_to_csharp_name(name), value)
+        csharp_name = python_name_to_csharp_name(name)
+        self_type = self.GetType()
+        field_type = get_field_type(self_type, csharp_name)
+        if field_type is not None:
+            return super(Form, self).__setattr__(csharp_name, python_value_to_csharp(field_type, value))
+        
+        return super(Form, self).__setattr__(name, value)
 
     def __getattr__(self, name):
-        if name.istitle():
-            return super(Form, self).__getattr__(name)
+        if not name.startswith('_') and not name.istitle():
+            csharp_val = getattr(self, python_name_to_csharp_name(name), self.__empty_arg)
+            if csharp_val is not self.__empty_arg:
+                return csharp_val
 
-        return getattr(self, python_name_to_csharp_name(name))
+        raise AttributeError(name)
 
     def __getattribute__(self, item):
         return csharp_value_to_python(super(Form, self).__getattribute__(item))
@@ -41,4 +47,4 @@ class Form(System.Windows.Forms.Form):
         self.InitializeComponent()
 
     def InitializeComponent(self):
-        self.components = System.ComponentModel.Container()
+        pass
