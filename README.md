@@ -117,6 +117,7 @@ my_form = netforms.Form(
     )],
 )
 ```
+Notice that the controls can take in attributes as keyword arguments as well.
 
 ##### Running Forms
 Everything from `System.Windows.Forms.Application` is available by both original and Python-friendly names. Simply
@@ -157,7 +158,7 @@ class MyForm(netforms.Form):
         self.resume_layout(False)
 
     def button1_click(self, sender, e):
-        sender.Text = str(int(sender.text) + 1)
+        sender.Text = str(int(sender.Text) + 1)
         sender.Update()
 ```
 
