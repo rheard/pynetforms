@@ -235,6 +235,22 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
 
 
+class MenuStrip(get_wrapper_class(System.Windows.Forms.MenuStrip)):
+    def __init__(self, *args, items=None, **kwargs):
+        super(MenuStrip, self).__init__(*args, **kwargs)
+
+        if items is not None:
+            self.items.add_range(items)
+
+
+class ToolStripMenuItem(get_wrapper_class(System.Windows.Forms.ToolStripMenuItem)):
+    def __init__(self, *args, drop_down_items=None, **kwargs):
+        super(ToolStripMenuItem, self).__init__(*args, **kwargs)
+
+        if drop_down_items is not None:
+            self.drop_down_items.add_range(drop_down_items)
+
+
 def csharp_namedtuple(*args, **kwargs):
     """Allow for CSharp names and python names."""
     klass = namedtuple(*args, **kwargs)
