@@ -29,9 +29,11 @@ class ValueConverter(object):
 
     def __init__(self, klass=None):
         if isinstance(klass, System.Type):
-            klass = get_class_from_name(klass.ToString())
-
-        self.klass = klass
+            self.clr_type = klass
+            self.klass = get_class_from_name(klass.ToString())
+        else:
+            self.klass = klass
+            self.clr_type = GetClrType(self.klass)
 
     @classmethod
     def get_converter(cls, klass):
@@ -181,8 +183,8 @@ class BoolConverter(BasicTypeConverter):
 
 
 class WrappedConverter(ValueConverter):
-    klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control, System.EventHandler,
-               System.ComponentModel.Component, System.ComponentModel.Container}
+    klasses = {System.Windows.Forms.Control, System.EventHandler, System.ComponentModel.Component,
+               System.ComponentModel.Container}
 
     def to_csharp(self, value, force=False):
         return value.instance
@@ -193,3 +195,25 @@ class WrappedConverter(ValueConverter):
     @classmethod
     def to_python(cls, value):
         return get_wrapper_class(value.GetType())(instance=value)
+
+
+class WrappedListConverter(WrappedConverter):
+    klasses = {System.Windows.Forms.Control.ControlCollection, System.Array[System.Windows.Forms.Control],
+               System.Windows.Forms.ToolStripItemCollection, System.Array[System.Windows.Forms.ToolStripItem]}
+
+    def to_csharp(self, value, force=False):
+        if hasattr(value, "instance"):
+            return value.instance
+
+        if isinstance(value, self.klass):
+            return value
+
+        contains_method = self.clr_type.GetMethod('Contains')
+        if contains_method:
+            # To get the collection's element type, we're going to get the argument type for Contains.
+            element_type = contains_method.GetParameters()[0].ParameterType
+        else:
+            # To get an array's element type, we're going to get the return type for Get.
+            element_type = self.clr_type.GetMethod("Get").ReturnType
+
+        return [ValueConverter(element_type).to_csharp(value_, force) for value_ in value]
