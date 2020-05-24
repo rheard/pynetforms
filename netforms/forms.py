@@ -7,10 +7,8 @@ class Form(get_wrapper_class(System.Windows.Forms.Form)):
     def __init__(self, *args, controls=None, **kwargs):
         super(Form, self).__init__(*args, **kwargs)
 
-        self.SuspendLayout()
         for control in controls or []:
             self.controls.add(control)
-        self.ResumeLayout(False)
 
         self.initialize_components()
 
