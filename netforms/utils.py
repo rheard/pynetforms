@@ -218,6 +218,12 @@ def get_wrapper_class(klass):
 
         __WRAPPER_CLASSES[klass] = WrapperClass
 
+    # Recursively look for subclasses, for the below special stuff...
+    wrapper_class_subclasses = __WRAPPER_CLASSES[klass].__subclasses__()
+    while wrapper_class_subclasses:
+        __WRAPPER_CLASSES[klass] = wrapper_class_subclasses[0]
+        wrapper_class_subclasses = __WRAPPER_CLASSES[klass].__subclasses__()
+
     return __WRAPPER_CLASSES[klass]
 
 
@@ -227,9 +233,6 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
             other = wrap_python_method(other)
 
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
-
-
-__WRAPPER_CLASSES[System.EventHandler] = EventHandler
 
 
 def csharp_namedtuple(*args, **kwargs):
