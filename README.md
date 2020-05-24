@@ -135,23 +135,24 @@ Events work similarly to C# in that you must add a callable to the event handler
 ```python
 class MyForm(netforms.Form):
     def initialize_components(self):
-        self.button1 = netforms.controls.Button()
         self.suspend_layout()
         # 
         # button1
         # 
-        self.button1.location = (12, 12)
-        self.button1.name = "button1"
-        self.button1.size = (75, 23)
-        self.button1.tab_index = 0
-        self.button1.text = "0"
-        self.button1.use_visual_style_back_color = True
+        self.button1 = netforms.controls.Button(
+            location=(12, 12),
+            name="button1",
+            size=(75, 23),
+            tab_index=0,
+            text="0",
+            use_visual_style_back_color=True,
+        )
         self.button1.click += self.button1_click
         # 
         # Form1
         # 
         self.auto_scale_dimensions = (6, 13)
-        self.auto_scale_mode = System.Windows.Forms.AutoScaleMode.Font  # TODO: NO!!!
+        self.auto_scale_mode = netforms.forms.AutoScaleMode.Font  # TODO: NO!!!
         self.client_size = (800, 450)
         self.controls.add(self.button1)
         self.name = "Form1"
@@ -159,13 +160,12 @@ class MyForm(netforms.Form):
         self.resume_layout(False)
 
     def button1_click(self, sender, e):
-        sender.Text = str(int(sender.Text) + 1)
-        sender.Update()
+        sender.text = int(sender.text) + 1
+        sender.update()
 ```
 
-First we define an event handler `button1_click`. This handler needs 2 arguments, `sender` and `e`. Note that due to 
-    limitations, currently `sender` will be a raw pythonnet `Control`, and will not work with the nice Python names
-    yet.
+First we define an event handler `button1_click`. This handler needs 2 arguments, `sender` and `e`. Notice that the 
+    sender is already wrapper, allowing for usage of Python style names and implicit type conversion.
     
 Next notice the line where we add `button1_click` to the EventHandler `click`. This is exactly like C# except without
     the converting to another type.
