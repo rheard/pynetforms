@@ -60,7 +60,7 @@ def wrap_csharp_method(method, arg_type_sets):
                               for arg_i, arg in enumerate(args))
                 return converters.ValueConverter.to_python(method(*args_))
             except TypeError:
-                # pythonnet raises a TypeError if the given
+                # pythonnet raises a TypeError if the given type doesn't match
                 pass
         else:
             raise ValueError("Could not convert all arguments {} for {}".format(args, method))
@@ -75,7 +75,13 @@ def wrap_python_method(method, return_type=None):
     @wraps(method)
     def wrapper(*args):
         args_ = tuple(converters.ValueConverter.to_python(arg) for arg in args)
-        ret = method(*args_)
+
+        try:
+            ret = method(*args_)
+        except:
+            logger.error('Exception in wrapped method', exc_info=True)
+            raise
+
         if return_type is not None:
             return converters.ValueConverter(return_type).to_csharp(ret, True)
 
