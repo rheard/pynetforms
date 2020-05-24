@@ -26,11 +26,15 @@ class Form(get_wrapper_class(System.Windows.Forms.Form)):
 
 __WRAPPER_CLASSES[System.Windows.Forms.Form] = Form
 
+# These types are found in controls.py and components.py
+__BLACKLIST_TYPES = [System.Windows.Forms.Control, System.ComponentModel.Component]
+
 
 def __getattr__(name):
     _original_class = getattr(System.Windows.Forms, name)
+    clr_type = GetClrType(_original_class)
 
-    if GetClrType(_original_class).IsSubclassOf(System.Windows.Forms.Control):
+    if any(clr_type.IsSubclassOf(blacklist_type) for blacklist_type in __BLACKLIST_TYPES):
         raise AttributeError(name)
 
     return get_wrapper_class(_original_class)

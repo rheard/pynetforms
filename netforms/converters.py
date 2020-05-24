@@ -1,8 +1,12 @@
 """Converters are responsible from translating types between Python and C#"""
 
+import logging
+
 from clr import System, GetClrType
 
 from .utils import get_wrapper_class, Point, Size, Rectangle, get_class_from_name
+
+logger = logging.getLogger(__name__)
 
 
 class ValueConverter(object):
@@ -177,7 +181,8 @@ class BoolConverter(BasicTypeConverter):
 
 
 class WrappedConverter(ValueConverter):
-    klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control, System.EventHandler}
+    klasses = {System.Windows.Forms.Control.ControlCollection, System.Windows.Forms.Control, System.EventHandler,
+               System.ComponentModel.Component, System.ComponentModel.Container}
 
     def to_csharp(self, value, force=False):
         return value.instance

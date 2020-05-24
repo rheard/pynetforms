@@ -176,7 +176,7 @@ def get_wrapper_class(klass):
                 return self.instance[item]
 
             def __setitem__(self, item, value):
-                self.instance = value
+                self.instance[item] = value
 
             def __iter__(self):
                 return iter(self.instance)
