@@ -187,6 +187,11 @@ def get_wrapper_class(klass):
             def __iter__(self):
                 return iter(self.instance)
 
+            def __eq__(self, other):
+                other_instance = getattr(other, 'instance', other)
+
+                return self.instance.__eq__(other_instance)
+
         for field in WrapperClass.clrtype.GetMembers():
             field_name = field.Name
             if any(field_name.startswith(x) for x in ['get_', 'set_', 'add_', 'remove_', 'op_']):
