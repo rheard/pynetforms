@@ -142,10 +142,10 @@ def get_wrapper_class(klass):
                         setattr(self, prop_name, val)
                     elif csharp_name in self.events:
                         if callable(val):
-                            val = [val]
-
-                        for handler in val:
-                            getattr(self, csharp_name).__iadd__(handler)
+                            getattr(self, csharp_name).__iadd__(val)
+                        else:
+                            for handler in val:
+                                getattr(self, csharp_name).__iadd__(handler)
                     else:
                         raise TypeError(f"__init__() got an unexpected keyword argument {prop_name!r}")
 
