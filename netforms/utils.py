@@ -136,7 +136,18 @@ def get_wrapper_class(klass):
                 self.instance = instance if instance is not None else self.klass(*args)
 
                 for prop_name, val in kwargs.items():
-                    setattr(self, prop_name, val)
+                    csharp_name = python_name_to_csharp_name(prop_name)
+
+                    if csharp_name in self.attributes:
+                        setattr(self, prop_name, val)
+                    elif csharp_name in self.events:
+                        if callable(val):
+                            val = [val]
+
+                        for handler in val:
+                            getattr(self, csharp_name).__iadd__(handler)
+                    else:
+                        raise TypeError(f"__init__() got an unexpected keyword argument {prop_name!r}")
 
             def __getattr__(self, name):
                 csharp_name = python_name_to_csharp_name(name)
