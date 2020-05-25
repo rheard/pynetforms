@@ -171,3 +171,19 @@ Next notice the line where we add `button1_click` to the EventHandler `click`. T
     the converting to another type.
 
 That is it! `button1_click` will be called when the button is clicked!
+
+Optionally, event handlers can be provided in the `__init__` as well:
+```python
+self.button1 = netforms.controls.Button(
+    ...
+    click=self.button1_click,
+)
+```
+
+Multiple handlers can be provided this way using an iterable
+```python
+self.button1 = netforms.controls.Button(
+    ...
+    click=[self.button1_click, self.generic_button_handler],
+)
+```
