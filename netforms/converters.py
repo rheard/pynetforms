@@ -155,7 +155,7 @@ class BasicTypeConverter(ValueConverter):
         python_types = getattr(self, 'python_types', tuple()) + (self.python_type, )
 
         if not force and not isinstance(value, python_types):
-            raise ValueError(value)
+            raise TypeError(value)
 
         return self.klass(self.python_type(value))
 
