@@ -177,6 +177,16 @@ class IntConverter(BasicTypeConverter):
         return super(IntConverter, self).to_csharp(value, force)
 
 
+class ByteConverter(ValueConverter):
+    klasses = {System.Byte}
+
+    def to_csharp(self, value, force=False):
+        if not isinstance(value, int) or not 0 <= value <= 255:
+            raise TypeError(f"Value {value!r} is not an acceptable byte value!")
+
+        return bytes([value])
+
+
 class FloatConverter(BasicTypeConverter):
     klasses = {System.Double, System.Single}
     python_type = float
@@ -190,7 +200,7 @@ class BoolConverter(BasicTypeConverter):
 
 class WrappedConverter(ValueConverter):
     klasses = {System.Windows.Forms.Control, System.EventHandler, System.ComponentModel.Component,
-               System.ComponentModel.Container}
+               System.ComponentModel.Container, System.Drawing.Font, System.Windows.Forms.Padding}
 
     def to_csharp(self, value, force=False):
         return value.instance

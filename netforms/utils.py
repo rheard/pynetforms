@@ -255,6 +255,18 @@ class MenuStrip(get_wrapper_class(System.Windows.Forms.MenuStrip)):
     list_arguments = ["Items", ]
 
 
+class StatusStrip(get_wrapper_class(System.Windows.Forms.StatusStrip)):
+    list_arguments = ["Items", ]
+
+
+class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
+    list_arguments = ["Controls", ]
+
+
+class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
+    list_arguments = ["Controls", ]
+
+
 class ToolStripMenuItem(get_wrapper_class(System.Windows.Forms.ToolStripMenuItem)):
     list_arguments = ["DropDownItems", ]
 
@@ -277,5 +289,8 @@ def csharp_namedtuple(*args, **kwargs):
 Point = csharp_namedtuple('Point', 'X Y')
 Size = csharp_namedtuple('Size', 'Width Height')
 Rectangle = csharp_namedtuple('Rectangle', 'Location Size')
+Font = get_wrapper_class(System.Drawing.Font)
+FontStyle = get_wrapper_class(System.Drawing.FontStyle)
+GraphicsUnit = get_wrapper_class(System.Drawing.GraphicsUnit)
 
 from . import converters
