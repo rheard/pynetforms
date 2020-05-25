@@ -131,12 +131,17 @@ def get_wrapper_class(klass):
             attributes = dict()
             events = set()
             nested = set()
+            list_arguments = set()
 
             def __init__(self, *args, instance=None, **kwargs):
                 self.instance = instance if instance is not None else self.klass(*args)
 
                 for prop_name, val in kwargs.items():
                     csharp_name = python_name_to_csharp_name(prop_name)
+
+                    if csharp_name in self.list_arguments:
+                        getattr(self, prop_name).add_range(val)
+                        continue
 
                     if csharp_name in self.attributes:
                         setattr(self, prop_name, val)
@@ -247,19 +252,11 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
 
 
 class MenuStrip(get_wrapper_class(System.Windows.Forms.MenuStrip)):
-    def __init__(self, *args, items=None, **kwargs):
-        super(MenuStrip, self).__init__(*args, **kwargs)
-
-        if items is not None:
-            self.items.add_range(items)
+    list_arguments = ["Items", ]
 
 
 class ToolStripMenuItem(get_wrapper_class(System.Windows.Forms.ToolStripMenuItem)):
-    def __init__(self, *args, drop_down_items=None, **kwargs):
-        super(ToolStripMenuItem, self).__init__(*args, **kwargs)
-
-        if drop_down_items is not None:
-            self.drop_down_items.add_range(drop_down_items)
+    list_arguments = ["DropDownItems", ]
 
 
 def csharp_namedtuple(*args, **kwargs):
