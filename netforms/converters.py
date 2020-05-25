@@ -170,6 +170,12 @@ class IntConverter(BasicTypeConverter):
     python_type = int
     python_types = (float, )
 
+    def to_csharp(self, value, force=False):
+        if isinstance(value, float) and not value.is_integer():
+            raise TypeError(f"Got {value} but expected an integer!")
+
+        return super(IntConverter, self).to_csharp(value, force)
+
 
 class FloatConverter(BasicTypeConverter):
     klasses = {System.Double, System.Single}
