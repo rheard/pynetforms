@@ -200,7 +200,7 @@ class BoolConverter(BasicTypeConverter):
 
 class WrappedConverter(ValueConverter):
     klasses = {System.Windows.Forms.Control, System.EventHandler, System.ComponentModel.Component,
-               System.ComponentModel.Container, System.Drawing.Font, System.Windows.Forms.Padding}
+               System.ComponentModel.Container, System.Drawing.Font, System.Drawing.Icon, System.Windows.Forms.Padding}
 
     def to_csharp(self, value, force=False):
         return value.instance

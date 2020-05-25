@@ -280,6 +280,14 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
 
 
+class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
+    list_arguments = ["Controls", ]
+
+
+class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
+    list_arguments = ["Controls", ]
+
+
 class MenuStrip(get_wrapper_class(System.Windows.Forms.MenuStrip)):
     list_arguments = ["Items", ]
 
@@ -288,12 +296,8 @@ class StatusStrip(get_wrapper_class(System.Windows.Forms.StatusStrip)):
     list_arguments = ["Items", ]
 
 
-class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
-    list_arguments = ["Controls", ]
-
-
-class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
-    list_arguments = ["Controls", ]
+class ContextMenuStrip(get_wrapper_class(System.Windows.Forms.ContextMenuStrip)):
+    list_arguments = ["Items", ]
 
 
 class ToolStripMenuItem(get_wrapper_class(System.Windows.Forms.ToolStripMenuItem)):
@@ -321,5 +325,6 @@ Rectangle = csharp_namedtuple('Rectangle', 'Location Size')
 Font = get_wrapper_class(System.Drawing.Font)
 FontStyle = get_wrapper_class(System.Drawing.FontStyle)
 GraphicsUnit = get_wrapper_class(System.Drawing.GraphicsUnit)
+Icon = get_wrapper_class(System.Drawing.Icon)
 
 from . import converters
