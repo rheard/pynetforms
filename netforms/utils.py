@@ -124,6 +124,9 @@ def get_wrapper_class(klass):
                 attributes (dict): attribute name -> attribute class
                 events (set): A set of event names in this class.
                 nested (set): A set of nested classes in this class.
+                constructors (list): A list of tuples, consisting of possible argument types to constructors.
+                list_arguments (set): Arguments that cannot be set directly,
+                    but need to have `add_range` called instead.
             """
             klass = klass_
             clrtype = clr.GetClrType(klass_)
@@ -131,11 +134,33 @@ def get_wrapper_class(klass):
             attributes = dict()
             events = set()
             nested = set()
+            constructors = list()
             list_arguments = set()
 
             def __init__(self, *args, instance=None, **kwargs):
-                self.instance = instance if instance is not None else self.klass(*args)
+                if instance is not None:
+                    # We were given an instance, simple.
+                    self.instance = instance
+                else:
+                    # We were not provided an instance but were given args,
+                    #   so we must try to match the arguments to one of the constructors
+                    for arg_types in self.constructors:
+                        if len(args) != len(arg_types):
+                            continue
 
+                        try:
+                            # Since type matching is important, do not force here.
+                            args_ = tuple(converters.ValueConverter(arg_types[arg_i]).to_csharp(arg)
+                                          for arg_i, arg in enumerate(args))
+                            self.instance = self.klass(*args_)
+                            break
+                        except TypeError:
+                            # pythonnet raises a TypeError if the given type doesn't match
+                            pass
+                    else:
+                        raise ValueError("Could not convert all arguments {} for {}".format(args, self.klass))
+
+                # Now that the object is setup, lets use the kwargs to set attributes
                 for prop_name, val in kwargs.items():
                     csharp_name = python_name_to_csharp_name(prop_name)
 
@@ -225,7 +250,11 @@ def get_wrapper_class(klass):
                 WrapperClass.attributes[field_name] = field.FieldType
             elif isinstance(field, System.Type):
                 WrapperClass.nested.add(field_name)
-            elif not isinstance(field, System.Reflection.ConstructorInfo):
+            elif isinstance(field, System.Reflection.ConstructorInfo):
+                WrapperClass.constructors.append(tuple(
+                    param_info.ParameterType for param_info in field.GetParameters()
+                ))
+            else:
                 logger.warning('Unknown member type info %r for field %s on class %s',
                                field, field_name, WrapperClass.klass)
 
