@@ -28,7 +28,8 @@ def get_class_from_name(klass_name, base_module=clr):
     attr = getattr(base_module, splitted[0], None)
     if attr and len(splitted) > 1:
         return get_class_from_name(splitted[1], attr)
-    elif not attr:
+
+    if not attr:
         # Now we need to handle nested types.
         splitted = klass_name.split('+', 1)
         attr = getattr(base_module, splitted[0])
@@ -62,8 +63,8 @@ def wrap_csharp_method(method, arg_type_sets):
             except TypeError:
                 # pythonnet raises a TypeError if the given type doesn't match
                 pass
-        else:
-            raise ValueError("Could not convert all arguments {} for {}".format(args, method))
+
+        raise ValueError(f"Could not convert all arguments {args} for {method}")
 
     return wrapper
 
@@ -78,12 +79,14 @@ def wrap_python_method(method, return_type=None):
 
         try:
             ret = method(*args_)
-        except:
+        except Exception:
             logger.error('Exception in wrapped method', exc_info=True)
             raise
 
         if return_type is not None:
             return converters.ValueConverter(return_type).to_csharp(ret, True)
+
+        return None
 
     return wrapper
 
@@ -184,14 +187,14 @@ def get_wrapper_class(klass):
 
                 if csharp_name in self.attributes:
                     return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
-                elif csharp_name in self.methods:
+                if csharp_name in self.methods:
                     method = getattr(self.instance, csharp_name)
                     arg_type_set = self.methods[csharp_name]
 
                     return wrap_csharp_method(method, arg_type_set)
-                elif csharp_name in self.events:
+                if csharp_name in self.events:
                     return get_wrapper_class(System.EventHandler)(instance=getattr(self.instance, csharp_name))
-                elif csharp_name in self.nested:
+                if csharp_name in self.nested:
                     return WrapperClass(getattr(self.instance, csharp_name))
 
                 raise AttributeError(name)
@@ -203,11 +206,11 @@ def get_wrapper_class(klass):
                     if csharp_name in self.events:
                         value = converters.ValueConverter(System.EventHandler).to_csharp(value)
                         setattr(self.instance, csharp_name, value)
-                    elif csharp_name in self.methods:
+                    if csharp_name in self.methods:
                         raise ValueError('property is read-only')
-                    elif csharp_name in self.nested:
+                    if csharp_name in self.nested:
                         raise ValueError('property is read-only')
-                    elif csharp_name in self.attributes:
+                    if csharp_name in self.attributes:
                         if self.attributes[csharp_name] is None:
                             raise ValueError('property is read-only')
 

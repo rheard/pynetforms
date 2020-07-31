@@ -152,7 +152,7 @@ class MyForm(netforms.Form):
         # Form1
         # 
         self.auto_scale_dimensions = (6, 13)
-        self.auto_scale_mode = netforms.forms.AutoScaleMode.Font  # TODO: NO!!!
+        self.auto_scale_mode = netforms.forms.AutoScaleMode.Font
         self.client_size = (800, 450)
         self.controls.add(self.button1)
         self.name = "Form1"

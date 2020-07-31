@@ -18,11 +18,11 @@ def __getattr__(name):
     name = utils.python_name_to_csharp_name(name)
 
     if name not in __WRAPPED_METHODS:
-        method = getattr(System.Windows.Forms.Application, name)
+        method_ = getattr(System.Windows.Forms.Application, name)
 
-        if not callable(method):
+        if not callable(method_):
             raise AttributeError(name)
 
-        __WRAPPED_METHODS[name] = utils.wrap_csharp_method(method, __ARGUMENT_TYPES[name])
+        __WRAPPED_METHODS[name] = utils.wrap_csharp_method(method_, __ARGUMENT_TYPES[name])
 
     return __WRAPPED_METHODS[name]
