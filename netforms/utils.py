@@ -163,7 +163,7 @@ def get_wrapper_class(klass):
                             # pythonnet raises a TypeError if the given type doesn't match
                             pass
                     else:
-                        raise ValueError("Could not convert all arguments {} for {}".format(args, self.klass))
+                        raise ValueError(f"Could not convert all arguments {args} for {self.klass}")
 
                 # Now that the object is setup, lets use the kwargs to set attributes
                 for prop_name, val in kwargs.items():
