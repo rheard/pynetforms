@@ -204,7 +204,7 @@ class WrappedConverter(ValueConverter):
                System.Drawing.Image, System.Drawing.Font, System.Drawing.Icon}
 
     def to_csharp(self, value, force=False):
-        return value.instance
+        return getattr(value, "instance", value)
 
     def to_python_event(self, value):
         return get_wrapper_class(self.klass)(instance=value)

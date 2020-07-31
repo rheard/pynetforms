@@ -91,12 +91,6 @@ def wrap_python_method(method, return_type=None):
     return wrapper
 
 
-class MetaWrapper(type):
-    def __getattr__(cls, item):
-        csharp_name = python_name_to_csharp_name(item)
-        return getattr(cls.klass, csharp_name)
-
-
 def get_wrapper_class(klass):
     """
     Get the wrapper class for the given C# class (or instance).
@@ -116,6 +110,14 @@ def get_wrapper_class(klass):
         return get_wrapper_class(klass.GetType())
 
     if klass not in __WRAPPER_CLASSES:
+        class MetaWrapper(type):
+            def __getattr__(cls, item):
+                csharp_name = python_name_to_csharp_name(item)
+                return getattr(cls.klass, csharp_name)
+
+            def __instancecheck__(cls, instance):
+                return isinstance(getattr(instance, 'instance', instance), cls.klass)
+
         class WrapperClass(metaclass=MetaWrapper):
             """
             A wrapper class.
@@ -219,9 +221,6 @@ def get_wrapper_class(klass):
 
                 return super(WrapperClass, self).__setattr__(name, value)
 
-            def __instancecheck__(self, instance):
-                return isinstance(instance, klass_)
-
             def __getitem__(self, item):
                 return self.instance[item]
 
@@ -279,6 +278,14 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
     def __iadd__(self, other):
         if callable(other):
             other = wrap_python_method(other)
+        elif isinstance(other, (list, set, tuple)):
+            # We've been given a list of handlers...
+            cur_item = self
+
+            for handler in other:
+                cur_item = cur_item.__iadd__(handler)
+
+            return cur_item
 
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
 
