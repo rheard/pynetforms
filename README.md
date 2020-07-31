@@ -46,18 +46,18 @@ class MyForm(netforms.Form):
         # 
         # button1
         # 
-        self.button1.Location = netforms.utils.Point(12, 12)
+        self.button1.Location = netforms.drawing.Point(12, 12)
         self.button1.Name = "button1"
-        self.button1.Size = netforms.utils.Size(75, 23)
+        self.button1.Size = netforms.drawing.Size(75, 23)
         self.button1.TabIndex = 0
         self.button1.Text = "button1"
         self.button1.UseVisualStyleBackColor = True
         # 
         # Form1
         # 
-        self.AutoScaleDimensions = netforms.utils.Size(6, 13)
+        self.AutoScaleDimensions = netforms.drawing.Size(6, 13)
         self.AutoScaleMode = netforms.forms.AutoScaleMode.Font
-        self.ClientSize = netforms.utils.Size(800, 450)
+        self.ClientSize = netforms.drawing.Size(800, 450)
         self.Controls.Add(self.button1)
         self.Name = "Form1"
         self.Text = "Form1"

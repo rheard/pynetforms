@@ -4,7 +4,8 @@ import logging
 
 from clr import System, GetClrType
 
-from .utils import get_wrapper_class, Point, Size, Rectangle, get_class_from_name
+from .drawing import Point, Size, Rectangle
+from .utils import get_wrapper_class, get_class_from_name
 
 logger = logging.getLogger(__name__)
 
