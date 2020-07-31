@@ -96,10 +96,6 @@ class NamedTupleConverter(ValueConverter):
 
     Attributes:
         python_klass: The Python class to use. By default, fields will be supplied as arguments.
-
-    TODO: System.Reflection _might_ be able to be used to get the attributes (yes it can) and their ordering to the
-        class creator (maybe?), preventing the need to define the above named tuples
-        (since they could be spun up on the fly)
     """
     @classmethod
     def to_python(cls, value):
