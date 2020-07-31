@@ -15,3 +15,19 @@ def __getattr__(name):
         raise AttributeError(name)
 
     return get_wrapper_class(_original_class)
+
+
+class MenuStrip(__getattr__('MenuStrip')):
+    list_arguments = ["Items", ]
+
+
+class StatusStrip(__getattr__('StatusStrip')):
+    list_arguments = ["Items", ]
+
+
+class ContextMenuStrip(__getattr__('ContextMenuStrip')):
+    list_arguments = ["Items", ]
+
+
+class ToolStripMenuItem(__getattr__('ToolStripMenuItem')):
+    list_arguments = ["DropDownItems", ]

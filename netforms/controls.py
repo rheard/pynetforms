@@ -9,9 +9,6 @@ from .utils import get_wrapper_class
 logger = logging.getLogger(__name__)
 
 
-AnchorStyle = get_wrapper_class(System.Windows.Forms.AnchorStyles)  # Force this enum here.
-
-
 def __getattr__(name):
     _original_class = getattr(System.Windows.Forms, name)
 
@@ -19,3 +16,7 @@ def __getattr__(name):
         raise AttributeError(name)
 
     return get_wrapper_class(_original_class)
+
+
+class SplitContainer(__getattr__("SplitContainer")):
+    list_arguments = ["Controls", ]

@@ -283,28 +283,13 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
 
 
+# TODO: Move all these to converters.py or controls.py
 class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
     list_arguments = ["Controls", ]
 
 
 class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
     list_arguments = ["Controls", ]
-
-
-class MenuStrip(get_wrapper_class(System.Windows.Forms.MenuStrip)):
-    list_arguments = ["Items", ]
-
-
-class StatusStrip(get_wrapper_class(System.Windows.Forms.StatusStrip)):
-    list_arguments = ["Items", ]
-
-
-class ContextMenuStrip(get_wrapper_class(System.Windows.Forms.ContextMenuStrip)):
-    list_arguments = ["Items", ]
-
-
-class ToolStripMenuItem(get_wrapper_class(System.Windows.Forms.ToolStripMenuItem)):
-    list_arguments = ["DropDownItems", ]
 
 
 def csharp_namedtuple(*args, **kwargs):
@@ -322,6 +307,7 @@ def csharp_namedtuple(*args, **kwargs):
     return Subclass
 
 
+# TODO: Maybe I need a drawing.py?
 Point = csharp_namedtuple('Point', 'X Y')
 Size = csharp_namedtuple('Size', 'Width Height')
 Rectangle = csharp_namedtuple('Rectangle', 'Location Size')
@@ -329,5 +315,8 @@ Font = get_wrapper_class(System.Drawing.Font)
 FontStyle = get_wrapper_class(System.Drawing.FontStyle)
 GraphicsUnit = get_wrapper_class(System.Drawing.GraphicsUnit)
 Icon = get_wrapper_class(System.Drawing.Icon)
+Bitmap = get_wrapper_class(System.Drawing.Bitmap)
+Color = get_wrapper_class(System.Drawing.Color)
+ContentAlignment = get_wrapper_class(System.Drawing.ContentAlignment)
 
 from . import converters
