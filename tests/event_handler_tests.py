@@ -140,8 +140,7 @@ class ButtonClickMultiEventHandlerTest(ButtonClickEventHandlerTest):
     def test_handler(self):
         """Test that multiple event handlers work"""
         for i in range(20):
-            self.assertEqual(str(i), self.form.button1.text)
-            self.assertEqual(str(i), self.form.text)
+            self.assertAllEqual(str(i), self.form.button1.text, self.form.text)
             self.form.button1.perform_click()
 
 
