@@ -290,15 +290,6 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
 
 
-# TODO: Move all these to converters.py or controls.py
-class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
-    list_arguments = ["Controls", ]
-
-
-class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
-    list_arguments = ["Controls", ]
-
-
 def csharp_namedtuple(*args, **kwargs):
     """Allow for CSharp names and python names."""
     klass = namedtuple(*args, **kwargs)

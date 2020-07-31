@@ -36,3 +36,11 @@ def __getattr__(name):
         raise AttributeError(name)
 
     return get_wrapper_class(_original_class)
+
+
+class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
+    list_arguments = ["Controls", ]
+
+
+class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
+    list_arguments = ["Controls", ]
