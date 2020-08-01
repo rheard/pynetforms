@@ -180,9 +180,11 @@ class BoolConverter(BasicTypeConverter):
 
 
 class WrappedConverter(ValueConverter):
+    """Handles wrapping classes to handle name and type conversions"""
     klasses = {System.Windows.Forms.Control, System.Windows.Forms.Padding, System.EventHandler,
                System.ComponentModel.Component, System.ComponentModel.Container,
-               System.Drawing.Image, System.Drawing.Font, System.Drawing.Icon, System.Drawing.Color}
+               System.Drawing.Image, System.Drawing.Font, System.Drawing.Icon, System.Drawing.Color,
+               System.Windows.Forms.ScrollProperties, System.Windows.Forms.ScrollableControl.DockPaddingEdges}
 
     def to_csharp(self, value, force=False):
         return getattr(value, "instance", value)
@@ -196,8 +198,10 @@ class WrappedConverter(ValueConverter):
 
 
 class WrappedListConverter(WrappedConverter):
+    """Handles wrapping arrays and collections of objects"""
     klasses = {System.Windows.Forms.Control.ControlCollection, System.Array[System.Windows.Forms.Control],
-               System.Windows.Forms.ToolStripItemCollection, System.Array[System.Windows.Forms.ToolStripItem]}
+               System.Windows.Forms.ToolStripItemCollection, System.Array[System.Windows.Forms.ToolStripItem],
+               System.Array[System.Windows.Forms.Form]}
 
     def to_csharp(self, value, force=False):
         if hasattr(value, "instance"):
