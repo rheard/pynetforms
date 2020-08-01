@@ -130,6 +130,7 @@ def get_wrapper_class(klass):
     if klass not in __WRAPPER_CLASSES:
         class MetaWrapper(type):
             def __getattr__(cls, item):
+                """This is for static items in the class, ie, Syste.Windows.Forms.Form.ActiveForm"""
                 csharp_name = python_name_to_csharp_name(item)
                 ret_val = getattr(cls.klass, csharp_name)
 
@@ -139,9 +140,12 @@ def get_wrapper_class(klass):
                     arg_type_set = cls.methods[csharp_name]
 
                     return wrap_csharp_method(ret_val, arg_type_set)
-                # TODO: Are static events or static nested classes a thing? If so, they will need to be handled here...
+                if csharp_name in cls.events:
+                    return get_wrapper_class(System.EventHandler)(instance=ret_val)
+                if csharp_name in cls.nested:
+                    return WrapperClass(ret_val)
 
-                return ret_val
+                raise AttributeError(item)
 
             def __instancecheck__(cls, instance):
                 return isinstance(getattr(instance, 'instance', instance), cls.klass)
