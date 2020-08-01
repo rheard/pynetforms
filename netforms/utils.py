@@ -130,7 +130,17 @@ def get_wrapper_class(klass):
         class MetaWrapper(type):
             def __getattr__(cls, item):
                 csharp_name = python_name_to_csharp_name(item)
-                return getattr(cls.klass, csharp_name)
+                ret_val = getattr(cls.klass, csharp_name)
+
+                if csharp_name in cls.attributes:
+                    return converters.ValueConverter.to_python(ret_val)
+                if csharp_name in cls.methods:
+                    arg_type_set = cls.methods[csharp_name]
+
+                    return wrap_csharp_method(ret_val, arg_type_set)
+                # TODO: Are static events or static nested classes a thing? If so, they will need to be handled here...
+
+                return ret_val
 
             def __instancecheck__(cls, instance):
                 return isinstance(getattr(instance, 'instance', instance), cls.klass)
