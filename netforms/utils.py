@@ -162,8 +162,6 @@ def get_wrapper_class(klass):
                 events (set): A set of event names in this class.
                 nested (set): A set of nested classes in this class.
                 constructors (list): A list of tuples, consisting of possible argument types to constructors.
-                list_arguments (set): Arguments that cannot be set directly,
-                    but need to have `add_range` called instead.
             """
             klass = klass_
             clrtype = clr.GetClrType(klass_)
@@ -172,7 +170,6 @@ def get_wrapper_class(klass):
             events = set()
             nested = set()
             constructors = list()
-            list_arguments = set()
 
             def __init__(self, *args, instance=None, **kwargs):
                 if instance is not None:
@@ -201,7 +198,9 @@ def get_wrapper_class(klass):
                 for prop_name, val in kwargs.items():
                     csharp_name = python_name_to_csharp_name(prop_name)
 
-                    if csharp_name in self.list_arguments:
+                    # TODO: Instead of using a hard coded list here,
+                    #   detect if the attribute we're setting is a list or collection
+                    if csharp_name in {'Controls', 'DropDownItems', 'Items'}:
                         getattr(self, prop_name).add_range(val)
                         continue
 

@@ -16,11 +16,3 @@ def __getattr__(name):
         raise AttributeError(name)
 
     return utils.get_wrapper_class(_original_class)
-
-
-class SplitContainer(__getattr__("SplitContainer")):
-    list_arguments = ["Controls", ]
-
-
-class CheckedListBox(__getattr__("CheckedListBox")):
-    list_arguments = ["Items", ]
