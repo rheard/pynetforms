@@ -47,6 +47,10 @@ class ValueConverter(object):
         if not isinstance(klass, System.Type):
             klass = GetClrType(klass)
 
+        if klass.IsArray or GetClrType(System.Collections.ICollection).IsAssignableFrom(klass):
+            # This is an array or a collection, so just use the WrappedListConverter
+            return WrappedListConverter(utils.get_class_from_name(klass.ToString()))
+
         for converter in cls.__subclasses__():
             for klass_ in converter.klasses:
                 if klass.Equals(klass_) or klass.IsSubclassOf(klass_):
@@ -199,9 +203,7 @@ class WrappedConverter(ValueConverter):
 
 class WrappedListConverter(WrappedConverter):
     """Handles wrapping arrays and collections of objects"""
-    klasses = {System.Windows.Forms.Control.ControlCollection, System.Array[System.Windows.Forms.Control],
-               System.Windows.Forms.ToolStripItemCollection, System.Array[System.Windows.Forms.ToolStripItem],
-               System.Array[System.Windows.Forms.Form]}
+    klasses = {}
 
     def to_csharp(self, value, force=False):
         if hasattr(value, "instance"):
