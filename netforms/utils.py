@@ -294,7 +294,8 @@ def get_wrapper_class(klass):
 
         WrapperClass.__name__ = WrapperClass.__qualname__ = klass.__name__
 
-        # We need to set the WrapperClass's module to the module that called us.
+        # We need to set the WrapperClass's module to the module that called us,
+        #   eg netforms.drawing or netforms.controls
         calling_frame = inspect.stack()[1]
         calling_module = inspect.getmodule(calling_frame[0])
         WrapperClass.__module__ = calling_module.__name__
