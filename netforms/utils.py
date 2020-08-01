@@ -1,3 +1,4 @@
+import inspect
 import logging
 
 from collections import namedtuple, defaultdict
@@ -288,7 +289,11 @@ def get_wrapper_class(klass):
                                field, field_name, WrapperClass.klass)
 
         WrapperClass.__name__ = WrapperClass.__qualname__ = klass.__name__
-        WrapperClass.__module__ = __name__
+
+        # We need to set the WrapperClass's module to the module that called us.
+        calling_frame = inspect.stack()[1]
+        calling_module = inspect.getmodule(calling_frame[0])
+        WrapperClass.__module__ = calling_module.__name__
 
         __WRAPPER_CLASSES[klass] = WrapperClass
 
