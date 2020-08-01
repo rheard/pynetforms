@@ -20,3 +20,7 @@ def __getattr__(name):
 
 class SplitContainer(__getattr__("SplitContainer")):
     list_arguments = ["Controls", ]
+
+
+class CheckedListBox(__getattr__("CheckedListBox")):
+    list_arguments = ["Items", ]
