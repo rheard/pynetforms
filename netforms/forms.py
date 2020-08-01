@@ -44,3 +44,6 @@ class TabControl(get_wrapper_class(System.Windows.Forms.TabControl)):
 
 class TabPage(get_wrapper_class(System.Windows.Forms.TabPage)):
     list_arguments = ["Controls", ]
+
+
+Padding = get_wrapper_class(System.Windows.Forms.Padding)
