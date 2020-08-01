@@ -7,6 +7,8 @@ import clr
 
 from clr import System, GetClrType
 
+from . import converters
+
 logger = logging.getLogger(__name__)
 __WRAPPER_CLASSES = dict()
 
@@ -37,6 +39,21 @@ def get_class_from_name(klass_name, base_module=clr):
             return get_class_from_name(splitted[1], attr)
 
     return attr
+
+
+def csharp_namedtuple(*args, **kwargs):
+    """Allow for CSharp names and python names."""
+    klass = namedtuple(*args, **kwargs)
+
+    class Subclass(klass):
+        def __getattr__(self, name):
+            return super(Subclass, self).__getattr__(python_name_to_csharp_name(name))
+
+        def __setattr__(self, name, value):
+            return super(Subclass, self).__setattr__(python_name_to_csharp_name(name), value)
+
+    Subclass.__name__ = Subclass.__qualname__ = klass.__name__
+    return Subclass
 
 
 def wrap_csharp_method(method, arg_type_sets):
@@ -288,21 +305,3 @@ class EventHandler(get_wrapper_class(System.EventHandler)):
             return cur_item
 
         return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
-
-
-def csharp_namedtuple(*args, **kwargs):
-    """Allow for CSharp names and python names."""
-    klass = namedtuple(*args, **kwargs)
-
-    class Subclass(klass):
-        def __getattr__(self, name):
-            return super(Subclass, self).__getattr__(python_name_to_csharp_name(name))
-
-        def __setattr__(self, name, value):
-            return super(Subclass, self).__setattr__(python_name_to_csharp_name(name), value)
-
-    Subclass.__name__ = Subclass.__qualname__ = klass.__name__
-    return Subclass
-
-
-from . import converters

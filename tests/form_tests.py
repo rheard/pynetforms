@@ -1,6 +1,6 @@
 import netforms
 
-from utils import ExpandedTestCase
+from .utils import ExpandedTestCase
 
 
 class TestPythonNames(ExpandedTestCase):

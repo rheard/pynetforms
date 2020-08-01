@@ -3,7 +3,7 @@ from time import sleep
 
 import netforms
 
-from utils import ExpandedTestCase
+from .utils import ExpandedTestCase
 
 
 class ButtonHandlerForm(netforms.Form):

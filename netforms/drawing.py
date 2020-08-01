@@ -1,5 +1,6 @@
 from clr import System
 
+from .converters import NamedTupleConverter
 from .utils import csharp_namedtuple, get_wrapper_class
 
 
@@ -13,3 +14,19 @@ Icon = get_wrapper_class(System.Drawing.Icon)
 Bitmap = get_wrapper_class(System.Drawing.Bitmap)
 Color = get_wrapper_class(System.Drawing.Color)
 ContentAlignment = get_wrapper_class(System.Drawing.ContentAlignment)
+
+
+# Note, these converters need to go here instead of in converters.py because of circular import foo
+class PointConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Point, System.Drawing.PointF}
+    python_klass = Point
+
+
+class SizeConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Size, System.Drawing.SizeF}
+    python_klass = Size
+
+
+class RectangleConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Rectangle}
+    python_klass = Rectangle

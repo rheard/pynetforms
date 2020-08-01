@@ -4,8 +4,7 @@ import logging
 
 from clr import System, GetClrType
 
-from .drawing import Point, Size, Rectangle
-from .utils import get_wrapper_class, get_class_from_name
+from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class ValueConverter(object):
     def __init__(self, klass=None):
         if isinstance(klass, System.Type):
             self.clr_type = klass
-            self.klass = get_class_from_name(klass.ToString())
+            self.klass = utils.get_class_from_name(klass.ToString())
         else:
             self.klass = klass
             self.clr_type = GetClrType(self.klass)
@@ -109,7 +108,7 @@ class NamedTupleConverter(ValueConverter):
         if isinstance(value, self.klass):
             return value
 
-        wrapper_class = get_wrapper_class(self.klass)
+        wrapper_class = utils.get_wrapper_class(self.klass)
 
         # Convert the subitems too.
         value = tuple(ValueConverter(wrapper_class.attributes[field]).to_csharp(value[field_i])
@@ -119,21 +118,6 @@ class NamedTupleConverter(ValueConverter):
                       if field in wrapper_class.attributes)
 
         return self.klass(*value)
-
-
-class PointConverter(NamedTupleConverter):
-    klasses = {System.Drawing.Point, System.Drawing.PointF}
-    python_klass = Point
-
-
-class SizeConverter(NamedTupleConverter):
-    klasses = {System.Drawing.Size, System.Drawing.SizeF}
-    python_klass = Size
-
-
-class RectangleConverter(NamedTupleConverter):
-    klasses = {System.Drawing.Rectangle}
-    python_klass = Rectangle
 
 
 class BasicTypeConverter(ValueConverter):
@@ -204,11 +188,11 @@ class WrappedConverter(ValueConverter):
         return getattr(value, "instance", value)
 
     def to_python_event(self, value):
-        return get_wrapper_class(self.klass)(instance=value)
+        return utils.get_wrapper_class(self.klass)(instance=value)
 
     @classmethod
     def to_python(cls, value):
-        return get_wrapper_class(value.GetType())(instance=value)
+        return utils.get_wrapper_class(value.GetType())(instance=value)
 
 
 class WrappedListConverter(WrappedConverter):
