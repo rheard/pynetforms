@@ -1,4 +1,12 @@
-"""Converters are responsible from translating types between Python and C#"""
+"""
+Converters are responsible from translating types between Python and C#
+
+pythonnet has converters in place, however there are a number of features this library hopes to improve on:
+    1. More types should be converted such as System.DateTime, or System.Drawing.Point to a namedtuple.
+    2. Pythonic names should work, ie, fore_color or ForeColor both should work.
+    3. Type conversion can be helped along.
+        For instance, setting `.text = 0` would normally raise an error, but now we would convert 0 to "0".
+"""
 
 import datetime as dt
 import logging
@@ -19,7 +27,7 @@ class ValueConverter(object):
     """
     klasses = set()
 
-    def __new__(cls, klass=None):
+    def __new__(cls, klass):
         """Find the converter for klass, see get_converter."""
         if cls is ValueConverter:
             converter = cls.get_converter(klass)
@@ -28,11 +36,13 @@ class ValueConverter(object):
 
         return super(ValueConverter, cls).__new__(cls)
 
-    def __init__(self, klass=None):
+    def __init__(self, klass):
         if isinstance(klass, System.Type):
+            # This is a RuntimeType class
             self.clr_type = klass
             self.klass = utils.get_class_from_name(klass.ToString())
         else:
+            # This is a class from C#, not a RuntimeType
             self.klass = klass
             self.clr_type = GetClrType(self.klass)
 
@@ -66,25 +76,20 @@ class ValueConverter(object):
 
     @classmethod
     def to_python(cls, value):
-        """
-        Convert the C# value to Python.
-
-        The basic operation is to just return the value...
-        """
-        # Since we're converting from C#, we have the type readily available.
-        GetType = getattr(value, 'GetType', None)
-        if GetType and cls is ValueConverter:
-            converter = cls.get_converter(GetType())
-            if converter:
-                return converter.to_python(value)
-
+        """Convert the C# value to Python."""
         if isinstance(value, System.Object):
-            # This is still not a Python-friendly value and we've failed to convert it.
-            #   To play it safe we better wrap whatever the value is in a wrapper so that we at least
-            #   get attribute name and type conversion...
-            return utils.get_wrapper_class(value.GetType())(instance=value)
+            # This is not a Python friendly object, lets try to find one of our converters...
+            converter = cls.get_converter(value.GetType())
 
-        return value
+            if converter is None or isinstance(converter, WrappedListConverter):
+                # We've failed to find a better converter... To play it safe we better wrap whatever
+                #   the value is so that we at least get name and type conversion...
+                #       Or this is an array/collection that should get wrapped...
+                return utils.get_wrapper_class(value.GetType())(instance=value)
+
+            return converter.to_python(value)
+
+        return value  # The basic operation is to just return the value...
 
     def to_csharp(self, value, force=False):
         """
@@ -95,40 +100,113 @@ class ValueConverter(object):
         return getattr(value, 'instance', value)
 
 
-class NamedTupleConverter(ValueConverter):
+# region Basic Type Converters
+class BasicTypeConverter(ValueConverter):
     """
-    Handles conversion for classes that can be handled with a basic named tuple.
+    Converts a basic Python type to a basic C# type.
 
-    Going from Python to C#, the default behavior is to call klass(*value).
+    These conversions should mostly be handled by pythonnet, when taking C# values to Python.
 
-    Going from C# to Python, the default behavior is to create a set of arguments, one for
-        each field value for field in fields. That set of arguments is then provided to the python_klass.
+    Going the other way though we want to help things along in certain situations.
+        For instance if an attribute is expecting a str but an int is provided, a simple conversion
+        by doing str(value) would help.
+
+    However we also don't want to get in the way of overloaded method resolution, hence the force argument.
+        We will force type conversion for attributes and method return types, but not for method arguments.
 
     Attributes:
-        python_klass: The Python class to use. By default, fields will be supplied as arguments.
+        python_type (type): The python type to convert to before calling the C# method.
+        python_types (tuple, optional): A tuple of python types that this **supports**. The above python_type is
+            automatically considered here.
+
+            If we are not forcing conversion, and the provided value is not one of the python_types, a TypeError
+                is automatically raised.
+
+            While forcing we can be more flexible in our accepted types, and we will let Python raise those errors.
     """
-    @classmethod
-    def to_python(cls, value):
-        """Convert the input C# value to Python."""
-        args = (getattr(value, field) for field in cls.python_klass._fields)
-        args = (ValueConverter.to_python(value) if isinstance(value, System.Object) else value for value in args)
-        return cls.python_klass(*args)
 
     def to_csharp(self, value, force=False):
-        """Convert the input Python value to C#."""
         if isinstance(value, self.klass):
+            # This is the C# type we expect already, so do nothing...
             return value
 
-        wrapper_class = utils.get_wrapper_class(self.klass)
+        python_types = getattr(self, 'python_types', tuple()) + (self.python_type, )
 
-        # Convert the subitems too.
-        value = tuple(ValueConverter(wrapper_class.attributes[field]).to_csharp(value[field_i])
+        if not force and not isinstance(value, python_types):
+            raise TypeError(value)
 
-                      for field_i, field in enumerate(self.python_klass._fields)
+        return self.klass(self.python_type(value))
 
-                      if field in wrapper_class.attributes)
 
-        return self.klass(*value)
+class StrConverter(BasicTypeConverter):
+    klasses = {System.String}
+    python_type = str
+
+
+class IntConverter(BasicTypeConverter):
+    klasses = {System.Int32}
+    python_type = int
+    python_types = (float, )
+
+    def to_csharp(self, value, force=False):
+        if isinstance(value, float) and not value.is_integer():
+            raise TypeError(f"Got {value} but expected an integer!")
+
+        return super(IntConverter, self).to_csharp(value, force)
+
+
+class ByteConverter(ValueConverter):
+    klasses = {System.Byte}
+
+    def to_csharp(self, value, force=False):
+        if not isinstance(value, int) or not 0 <= value <= 255:
+            raise TypeError(f"Value {value!r} is not an acceptable byte value!")
+
+        return bytes([value])
+
+
+class FloatConverter(BasicTypeConverter):
+    klasses = {System.Double, System.Single}
+    python_type = float
+    python_types = (int, )
+
+
+class BoolConverter(BasicTypeConverter):
+    klasses = {System.Boolean}
+    python_type = bool
+# endregion
+
+
+class WrappedListConverter(ValueConverter):
+    """
+    Handles wrapping arrays and collections of objects.
+
+    Going from C# to Python, the Array or Collection will simply be wrapped like anything else, and the wrapper
+        will handle iteration.
+
+    Typically one wouldn't set directly, but would use another method such as `add_range`. However pythonnet will
+        accept a list, so we just need to convert each element in the given iterable, and then provide that list.
+    """
+
+    def to_csharp(self, value, force=False):
+        if hasattr(value, "instance"):
+            # This is a wrapped collection/array...
+            return value.instance
+
+        if isinstance(value, self.klass):
+            # This is a native C# collection/array...
+            return value
+
+        # We need to know the expected type of items in this collection/array...
+        contains_method = self.clr_type.GetMethod('Contains')
+        if contains_method:
+            # To get the collection's element type, we're going to get the argument type for Contains.
+            element_type = contains_method.GetParameters()[0].ParameterType
+        else:
+            # To get an array's element type, we're going to get the return type for Get.
+            element_type = self.clr_type.GetMethod("Get").ReturnType
+
+        return [ValueConverter(element_type).to_csharp(value_, force) for value_ in value]
 
 
 class DateTimeTypeConverter(ValueConverter):
@@ -193,83 +271,40 @@ class DateTimeTypeConverter(ValueConverter):
                            value.Millisecond * 1000, tzinfo)
 
 
-class BasicTypeConverter(ValueConverter):
+class NamedTupleConverter(ValueConverter):
     """
-    Converts a basic Python type to a basic C# type.
+    Handles conversion for classes that can be handled with a namedtuple, such as System.Drawing.Point.
+
+    Going from Python to C#, the default behavior is to call the C# constructor using *value, meaning a namedtuple or
+        tuple are acceptable.
+
+    Going from C# to Python, we simply need to provide the values to the declared namedtuple.
 
     Attributes:
-        python_type (type): The python type to convert to before calling the C# method.
-        python_types (tuple, optional): A tuple of python types that this **supports**. The above python_type is
-            automatically considered here.
+        python_klass: The Python class to use. By default, fields will be supplied as arguments.
     """
+
+    @classmethod
+    def to_python(cls, value):
+        """Convert the input C# value to Python."""
+        args = (getattr(value, field) for field in cls.python_klass._fields)
+        args = (ValueConverter.to_python(value) if isinstance(value, System.Object) else value for value in args)
+        return cls.python_klass(*args)
+
     def to_csharp(self, value, force=False):
+        """Convert the input Python value to C#."""
         if isinstance(value, self.klass):
             return value
 
-        python_types = getattr(self, 'python_types', tuple()) + (self.python_type, )
+        wrapper_class = utils.get_wrapper_class(self.klass)
 
-        if not force and not isinstance(value, python_types):
-            raise TypeError(value)
+        # Here we iterate over the fields in the namedtuple, and use those field names to get the fields'
+        #   expected types from C#, and then convert the values in the tuple to those expected types.
+        #       We won't force since these are effectively arguments for a constructor.
+        value = tuple(ValueConverter(wrapper_class.attributes[field]).to_csharp(value[field_i])
 
-        return self.klass(self.python_type(value))
+                      for field_i, field in enumerate(self.python_klass._fields)
 
+                      if field in wrapper_class.attributes)
 
-class StrConverter(BasicTypeConverter):
-    klasses = {System.String}
-    python_type = str
-
-
-class IntConverter(BasicTypeConverter):
-    klasses = {System.Int32}
-    python_type = int
-    python_types = (float, )
-
-    def to_csharp(self, value, force=False):
-        if isinstance(value, float) and not value.is_integer():
-            raise TypeError(f"Got {value} but expected an integer!")
-
-        return super(IntConverter, self).to_csharp(value, force)
-
-
-class ByteConverter(ValueConverter):
-    klasses = {System.Byte}
-
-    def to_csharp(self, value, force=False):
-        if not isinstance(value, int) or not 0 <= value <= 255:
-            raise TypeError(f"Value {value!r} is not an acceptable byte value!")
-
-        return bytes([value])
-
-
-class FloatConverter(BasicTypeConverter):
-    klasses = {System.Double, System.Single}
-    python_type = float
-    python_types = (int, )
-
-
-class BoolConverter(BasicTypeConverter):
-    klasses = {System.Boolean}
-    python_type = bool
-
-
-class WrappedListConverter(ValueConverter):
-    """Handles wrapping arrays and collections of objects"""
-
-    def to_csharp(self, value, force=False):
-        if hasattr(value, "instance"):
-            # This is a wrapped collection/array...
-            return value.instance
-
-        if isinstance(value, self.klass):
-            # This is a native C# collection/array...
-            return value
-
-        contains_method = self.clr_type.GetMethod('Contains')
-        if contains_method:
-            # To get the collection's element type, we're going to get the argument type for Contains.
-            element_type = contains_method.GetParameters()[0].ParameterType
-        else:
-            # To get an array's element type, we're going to get the return type for Get.
-            element_type = self.clr_type.GetMethod("Get").ReturnType
-
-        return [ValueConverter(element_type).to_csharp(value_, force) for value_ in value]
+        return self.klass(*value)
