@@ -1,5 +1,6 @@
 """Converters are responsible from translating types between Python and C#"""
 
+import datetime as dt
 import logging
 
 from clr import System, GetClrType
@@ -122,6 +123,68 @@ class NamedTupleConverter(ValueConverter):
                       if field in wrapper_class.attributes)
 
         return self.klass(*value)
+
+
+class DateTimeTypeConverter(ValueConverter):
+    """
+    Converts between System.DateTime and datetime.datetime
+
+    Notes:
+        C# does not distinguish between dates and datetimes like Python does.
+            In C#, a date is just a datetime at midnight.
+
+        This can lead to some inconsistencies. Such as the fact that a date can be accepted,
+            but it will come back out as a datetime. Take the following for example:
+
+        >>> today = datetime.now().date()
+        >>> control.max_date = today
+        >>> print(control.max_date == today)
+        False
+        >>> print(control.max_date.date() == today)
+        True
+
+        To fix this one would have to try to guess if a C# System.DateTime object is referencing a
+            time at midnight or just a date. An effort to guess is doomed to failure so a datetime
+            is always returned; if a date is expected use .date().
+    """
+    klasses = {System.DateTime}
+
+    def to_csharp(self, value, force=False):
+        if isinstance(value, self.klass):
+            return value
+
+        if not isinstance(value, dt.date):
+            raise TypeError(value)
+
+        # We may have been given a date instead of a datetime, so fill in the time info...
+        hour = getattr(value, 'hour', 0)
+        minute = getattr(value, 'minute', 0)
+        second = getattr(value, 'second', 0)
+        microsecond = getattr(value, 'microsecond', 0)
+        tzinfo = getattr(value, 'tzinfo')
+
+        # C# just does not provide a lot of options for timezone... Its either UTC, Local, or unspecified
+        timezone_info = System.DateTimeKind.Unspecified
+        if tzinfo == dt.datetime.now().astimezone().tzinfo:  # Is this the local timezone?
+            timezone_info = System.DateTimeKind.Local
+        elif tzinfo == dt.timezone.utc:
+            timezone_info = System.DateTimeKind.Utc
+        elif tzinfo is not None:
+            ValueError(f"A timezone other than None, UTC or local was used ({value.tzinfo})")
+
+        return self.klass(value.year, value.month, value.day, hour, minute, second,
+                          microsecond // 1000, timezone_info)
+
+    @classmethod
+    def to_python(cls, value):
+        tzinfo = None
+        if value.Kind == System.DateTimeKind.Local:
+            tzinfo = dt.datetime.now().astimezone().tzinfo
+        elif value.Kind == System.DateTimeKind.Utc:
+            tzinfo = dt.timezone.utc
+
+        return dt.datetime(value.Year, value.Month, value.Day, value.Hour, value.Minute, value.Second,
+                           value.Millisecond * 1000, tzinfo)
 
 
 class BasicTypeConverter(ValueConverter):
