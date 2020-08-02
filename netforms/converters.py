@@ -78,15 +78,21 @@ class ValueConverter(object):
             if converter:
                 return converter.to_python(value)
 
+        if isinstance(value, System.Object):
+            # This is still not a Python-friendly value and we've failed to convert it.
+            #   To play it safe we better wrap whatever the value is in a wrapper so that we at least
+            #   get attribute name and type conversion...
+            return utils.get_wrapper_class(value.GetType())(instance=value)
+
         return value
 
     def to_csharp(self, value, force=False):
         """
         Convert the Python value to C#.
 
-        The basic operation is to just return the value...
+        First check if this is a wrapped object, otherwise just return the value...
         """
-        return value
+        return getattr(value, 'instance', value)
 
 
 class NamedTupleConverter(ValueConverter):
@@ -246,33 +252,16 @@ class BoolConverter(BasicTypeConverter):
     python_type = bool
 
 
-class WrappedConverter(ValueConverter):
-    """Handles wrapping classes to handle name and type conversions"""
-    klasses = {System.Windows.Forms.Control, System.Windows.Forms.Padding, System.EventHandler,
-               System.ComponentModel.Component, System.ComponentModel.Container,
-               System.Drawing.Image, System.Drawing.Font, System.Drawing.Icon, System.Drawing.Color,
-               System.Windows.Forms.ScrollProperties, System.Windows.Forms.ScrollableControl.DockPaddingEdges}
-
-    def to_csharp(self, value, force=False):
-        return getattr(value, "instance", value)
-
-    def to_python_event(self, value):
-        return utils.get_wrapper_class(self.klass)(instance=value)
-
-    @classmethod
-    def to_python(cls, value):
-        return utils.get_wrapper_class(value.GetType())(instance=value)
-
-
-class WrappedListConverter(WrappedConverter):
+class WrappedListConverter(ValueConverter):
     """Handles wrapping arrays and collections of objects"""
-    klasses = {}
 
     def to_csharp(self, value, force=False):
         if hasattr(value, "instance"):
+            # This is a wrapped collection/array...
             return value.instance
 
         if isinstance(value, self.klass):
+            # This is a native C# collection/array...
             return value
 
         contains_method = self.clr_type.GetMethod('Contains')
