@@ -9,4 +9,4 @@ setup(name='pynetforms',
       description="A light Pythonic wrapper around .NET's Forms libraries.",
       url='TBD',
       packages=['netforms'],
-      install_requires=['pythonnet'])
+      install_requires=['expanded-pythonnet'])
