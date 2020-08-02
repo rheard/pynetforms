@@ -1,15 +1,14 @@
 from clr import System, GetClrType
 
-from .converters import NamedTupleConverter
-from .utils import get_wrapper_class, csharp_namedtuple
+from .datatypes import Padding
+from .utils import get_wrapper_class
 
 
 class Form(get_wrapper_class(System.Windows.Forms.Form)):
-    def __init__(self, *args, controls=None, **kwargs):
-        super(Form, self).__init__(*args, **kwargs)
+    """By default, we just want to send a call down the initialize_components stack"""
 
-        for control in controls or []:
-            self.controls.add(control)
+    def __init__(self, *args, **kwargs):
+        super(Form, self).__init__(*args, **kwargs)
 
         self.initialize_components()
 
@@ -35,12 +34,3 @@ def __getattr__(name):
         raise AttributeError(name)
 
     return get_wrapper_class(_original_class)
-
-
-Padding = csharp_namedtuple('Padding', 'Left Top Right Bottom')
-
-
-# Note, these converters need to go here instead of in converters.py because of circular import foo
-class PaddingConverter(NamedTupleConverter):
-    klasses = {System.Windows.Forms.Padding}
-    python_klass = Padding

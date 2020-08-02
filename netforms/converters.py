@@ -13,7 +13,7 @@ import logging
 
 from clr import System, GetClrType
 
-from . import utils
+from . import datatypes, utils
 
 logger = logging.getLogger(__name__)
 
@@ -266,9 +266,10 @@ class DateTimeTypeConverter(ValueConverter):
                            value.Millisecond * 1000, tzinfo)
 
 
+# region Namedtuple Converters
 class NamedTupleConverter(ValueConverter):
     """
-    Handles conversion for classes that can be handled with a namedtuple, such as System.Drawing.Point.
+    Handles conversion for classes that can be handled with a simple namedtuple, such as System.Drawing.Point.
 
     Going from Python to C#, the default behavior is to call the C# constructor using *value, meaning a namedtuple or
         tuple are acceptable.
@@ -303,3 +304,24 @@ class NamedTupleConverter(ValueConverter):
                       if field in wrapper_class.attributes)
 
         return self.klass(*value)
+
+
+class PaddingConverter(NamedTupleConverter):
+    klasses = {System.Windows.Forms.Padding}
+    python_klass = datatypes.Padding
+
+
+class PointConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Point, System.Drawing.PointF}
+    python_klass = datatypes.Point
+
+
+class SizeConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Size, System.Drawing.SizeF}
+    python_klass = datatypes.Size
+
+
+class RectangleConverter(NamedTupleConverter):
+    klasses = {System.Drawing.Rectangle}
+    python_klass = datatypes.Rectangle
+# endregion

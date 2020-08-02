@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from clr import System, GetClrType
 
-from . import utils, controls, converters, components, drawing
+from . import components, controls, converters, drawing, utils
 from .forms import Form
 
 __WRAPPED_METHODS = dict()

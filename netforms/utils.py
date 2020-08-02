@@ -6,9 +6,7 @@ from functools import wraps
 
 import clr
 
-from clr import System, GetClrType
-
-from . import converters
+from clr import System
 
 logger = logging.getLogger(__name__)
 __WRAPPER_CLASSES = dict()
@@ -314,18 +312,4 @@ def get_wrapper_class(klass):
     return __WRAPPER_CLASSES[klass]
 
 
-class EventHandler(get_wrapper_class(System.EventHandler)):
-    """The EventHandler wrapper should support iadd, which should accept lists/sets/tuples"""
-    def __iadd__(self, other):
-        if callable(other):
-            other = wrap_python_method(other)
-        elif isinstance(other, (list, set, tuple)):
-            # We've been given a list of handlers...
-            cur_item = self
-
-            for handler in other:
-                cur_item = cur_item.__iadd__(handler)
-
-            return cur_item
-
-        return get_wrapper_class(System.EventHandler)(instance=self.instance.__iadd__(other))
+from . import converters
