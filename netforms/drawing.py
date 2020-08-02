@@ -1,3 +1,7 @@
+"""
+This module serves as an entry point for objects in System.Drawing.
+"""
+
 from clr import System
 
 from .converters import NamedTupleConverter
@@ -7,13 +11,11 @@ from .utils import csharp_namedtuple, get_wrapper_class
 Point = csharp_namedtuple('Point', 'X Y')
 Size = csharp_namedtuple('Size', 'Width Height')
 Rectangle = csharp_namedtuple('Rectangle', 'Location Size')
-Font = get_wrapper_class(System.Drawing.Font)
-FontStyle = get_wrapper_class(System.Drawing.FontStyle)
-GraphicsUnit = get_wrapper_class(System.Drawing.GraphicsUnit)
-Icon = get_wrapper_class(System.Drawing.Icon)
-Bitmap = get_wrapper_class(System.Drawing.Bitmap)
-Color = get_wrapper_class(System.Drawing.Color)
-ContentAlignment = get_wrapper_class(System.Drawing.ContentAlignment)
+
+
+def __getattr__(name):
+    _original_class = getattr(System.Drawing, name)
+    return get_wrapper_class(_original_class)
 
 
 # Note, these converters need to go here instead of in converters.py because of circular import foo
