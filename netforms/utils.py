@@ -130,7 +130,7 @@ def get_wrapper_class(klass):
     if klass not in __WRAPPER_CLASSES:
         class MetaWrapper(type):
             def __getattr__(cls, item):
-                """This is for static items in the class, ie, Syste.Windows.Forms.Form.ActiveForm"""
+                """This is for static items in the class, ie, System.Windows.Forms.Form.ActiveForm"""
                 csharp_name = python_name_to_csharp_name(item)
                 ret_val = getattr(cls.klass, csharp_name)
 
@@ -266,7 +266,10 @@ def get_wrapper_class(klass):
 
                 return self.instance.__eq__(other_instance)
 
-        for field in WrapperClass.clrtype.GetMembers():
+        for field in WrapperClass.clrtype.GetMembers(
+                # The default search will get public items only, protected not included. We want everything
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static):
             field_name = field.Name
             if any(field_name.startswith(x) for x in ['get_', 'set_', 'add_', 'remove_', 'op_']):
                 continue
