@@ -217,18 +217,19 @@ def get_wrapper_class(klass):
 
             def __getattr__(self, name):
                 csharp_name = python_name_to_csharp_name(name)
+                csharp_val = getattr(self.instance, csharp_name)
 
                 if csharp_name in self.attributes:
-                    return converters.ValueConverter.to_python(getattr(self.instance, csharp_name))
+                    return converters.ValueConverter.to_python(csharp_val)
                 if csharp_name in self.methods:
-                    method = getattr(self.instance, csharp_name)
+                    method = csharp_val
                     arg_type_set = self.methods[csharp_name]
 
                     return wrap_csharp_method(method, arg_type_set)
                 if csharp_name in self.events:
-                    return get_wrapper_class(System.EventHandler)(instance=getattr(self.instance, csharp_name))
+                    return get_wrapper_class(System.EventHandler)(instance=csharp_val)
                 if csharp_name in self.nested:
-                    return WrapperClass(getattr(self.instance, csharp_name))
+                    return WrapperClass(csharp_val)
 
                 raise AttributeError(name)
 
