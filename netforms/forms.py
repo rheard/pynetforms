@@ -1,6 +1,7 @@
 from clr import System, GetClrType
 
-from .utils import __WRAPPER_CLASSES, get_wrapper_class
+from .converters import NamedTupleConverter
+from .utils import __WRAPPER_CLASSES, get_wrapper_class, csharp_namedtuple
 
 
 class Form(get_wrapper_class(System.Windows.Forms.Form)):
@@ -38,4 +39,9 @@ def __getattr__(name):
     return get_wrapper_class(_original_class)
 
 
-Padding = get_wrapper_class(System.Windows.Forms.Padding)
+Padding = csharp_namedtuple('Padding', 'Left Top Right Bottom')
+
+
+class PaddingConverter(NamedTupleConverter):
+    klasses = {System.Windows.Forms.Padding}
+    python_klass = Padding
