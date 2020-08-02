@@ -144,29 +144,24 @@ class StrConverter(BasicTypeConverter):
 
 
 class IntConverter(BasicTypeConverter):
-    klasses = {System.Int32}
+    klasses = {System.Int64, System.Int32, System.Int16, System.Byte,
+               System.UInt64, System.UInt32, System.UInt16, System.SByte,
+               System.Char}
     python_type = int
     python_types = (float, )
 
     def to_csharp(self, value, force=False):
+        if isinstance(value, float) and self.klass in {System.Char}:
+            raise TypeError("Cannot use a float in place of a char!")
+
         if isinstance(value, float) and not value.is_integer():
             raise TypeError(f"Got {value} but expected an integer!")
 
         return super(IntConverter, self).to_csharp(value, force)
 
 
-class ByteConverter(ValueConverter):
-    klasses = {System.Byte}
-
-    def to_csharp(self, value, force=False):
-        if not isinstance(value, int) or not 0 <= value <= 255:
-            raise TypeError(f"Value {value!r} is not an acceptable byte value!")
-
-        return bytes([value])
-
-
 class FloatConverter(BasicTypeConverter):
-    klasses = {System.Double, System.Single}
+    klasses = {System.Double, System.Single, System.Decimal}
     python_type = float
     python_types = (int, )
 
