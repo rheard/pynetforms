@@ -11,8 +11,11 @@ logger = logging.getLogger(__name__)
 
 def __getattr__(name):
     _original_class = getattr(System.Windows.Forms, name)
+    _original_clr_class = clr.GetClrType(_original_class)
 
-    if not clr.GetClrType(_original_class).IsSubclassOf(System.Windows.Forms.Control):
+    if not _original_clr_class.IsSubclassOf(System.Windows.Forms.Control) \
+            or _original_clr_class.IsSubclassOf(System.Windows.Forms.Form):
+        # This isn't a control, or its a Form (which are found in forms.py)
         raise AttributeError(name)
 
     return utils.get_wrapper_class(_original_class)
