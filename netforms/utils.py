@@ -315,6 +315,7 @@ def get_wrapper_class(klass):
 
 
 class EventHandler(get_wrapper_class(System.EventHandler)):
+    """The EventHandler wrapper should support iadd, which should accept lists/sets/tuples"""
     def __iadd__(self, other):
         if callable(other):
             other = wrap_python_method(other)

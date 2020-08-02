@@ -40,6 +40,7 @@ def __getattr__(name):
 Padding = csharp_namedtuple('Padding', 'Left Top Right Bottom')
 
 
+# Note, these converters need to go here instead of in converters.py because of circular import foo
 class PaddingConverter(NamedTupleConverter):
     klasses = {System.Windows.Forms.Padding}
     python_klass = Padding

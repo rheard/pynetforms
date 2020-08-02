@@ -1,3 +1,11 @@
+"""
+This module exists to serve as an entry point for objects in System.Windows.Forms that are components,
+    but wouldn't be available in controls or forms. For example `ToolStripMenuItem` is a component,
+    not a control.
+
+If an object isn't found in System.Windows.Forms, System.ComponentModel will also be checked.
+"""
+
 import clr
 
 from clr import System

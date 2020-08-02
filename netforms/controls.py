@@ -1,3 +1,8 @@
+"""
+This module exists to serve as an entry point for objects in System.Windows.Forms which are controls,
+    but not a Form (which are available in forms.py).
+"""
+
 import logging
 
 import clr
