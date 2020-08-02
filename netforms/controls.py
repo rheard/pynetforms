@@ -3,18 +3,15 @@ This module exists to serve as an entry point for objects in System.Windows.Form
     but not a Form (which are available in forms.py).
 """
 
-import logging
-
 import clr
 
 from clr import System
 
-from . import utils
-
-logger = logging.getLogger(__name__)
+from expanded_clr import utils
 
 
 def __getattr__(name):
+    name = utils.python_name_to_csharp_name(name)
     _original_class = getattr(System.Windows.Forms, name)
     _original_clr_class = clr.GetClrType(_original_class)
 

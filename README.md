@@ -1,5 +1,5 @@
 # pynetforms
-A Pythonic wrapper around the .NET Forms libraries.
+A Pythonic entry point for the .NET Forms libraries.
 
 The two major UI libraries for Python are Qt and Tkinter. This library serves as an alternative, allowing for the use
     of .NET Forms in a Python-friendly manner.

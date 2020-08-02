@@ -1,7 +1,7 @@
 from clr import System, GetClrType
 
-from .datatypes import Padding
-from .utils import get_wrapper_class
+from expanded_clr.datatypes import Padding  # These need to be available here
+from expanded_clr.utils import get_wrapper_class, python_name_to_csharp_name
 
 
 class Form(get_wrapper_class(System.Windows.Forms.Form)):
@@ -23,6 +23,7 @@ class Form(get_wrapper_class(System.Windows.Forms.Form)):
 
 
 def __getattr__(name):
+    name = python_name_to_csharp_name(name)
     _original_class = getattr(System.Windows.Forms, name)
     _original_clr_class = GetClrType(_original_class)
 
