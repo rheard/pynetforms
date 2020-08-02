@@ -7,7 +7,7 @@ import clr
 
 from clr import System
 
-from expanded_clr import utils
+from expanded_clr import get_wrapper_class, utils
 
 
 def __getattr__(name):
@@ -20,4 +20,4 @@ def __getattr__(name):
         # This isn't a control, or its a Form (which are found in forms.py)
         raise AttributeError(name)
 
-    return utils.get_wrapper_class(_original_class)
+    return get_wrapper_class(_original_class)
