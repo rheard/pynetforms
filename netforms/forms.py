@@ -1,6 +1,6 @@
 from clr import System, GetClrType
 
-from expanded_clr.datatypes import Padding  # These need to be available here
+from expanded_clr.datatypes.windows import Padding  # These need to be available here
 from expanded_clr import get_wrapper_class, utils
 
 
